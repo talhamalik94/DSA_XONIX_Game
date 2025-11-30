@@ -23,6 +23,11 @@ MatchmakingSystem g_matchmaking;
 extern PlayerDatabase g_playerDb;
 extern int g_currentPlayer;
 
+extern MatchmakingSystem g_matchmaking;
+extern MatchHistory g_matchHistory;
+extern int g_secondPlayerIndex;
+
+
 int g_selectedLevel = 0; // 0 = Easy, 1 = Medium, 2 = Hard
 
 // ---------------------------------------------
@@ -783,8 +788,13 @@ AppState showLeaderboardScreen(RenderWindow &window, const Theme &theme)
 
 AppState showMatchmakingScreen(RenderWindow &window, const Theme &theme)
 {
-    bool justJoined = false;
-    string statusMessage = "Press ENTER to join matchmaking queue.";
+    bool searching = false;
+    bool hasMatch = false;
+    int matchedOpponent = -1;
+
+    string statusMessage = "Press Enter to join matchmaking queue.";
+    string matchInfo = "";
+    string warning = "";
 
     while (window.isOpen())
     {
@@ -801,83 +811,114 @@ AppState showMatchmakingScreen(RenderWindow &window, const Theme &theme)
             {
                 if (event.key.code == Keyboard::Escape)
                 {
+                    // Just go back to player menu
+                    hasMatch = false;
+                    matchedOpponent = -1;
+                    g_secondPlayerIndex = -1;
                     return AppState::PLAYER_MENU;
                 }
-                else if (event.key.code == Keyboard::Enter)
+
+                if (event.key.code == Keyboard::Enter)
                 {
                     if (g_currentPlayer < 0)
                     {
-                        statusMessage = "You must be logged in to join matchmaking.";
+                        warning = "You must be logged in to use matchmaking.";
+                    }
+                    else if (hasMatch && matchedOpponent >= 0)
+                    {
+                        // We already have a match: start multiplayer game now
+                        g_secondPlayerIndex = matchedOpponent;
+                        runMultiplayerGame(window, theme);
+                        g_secondPlayerIndex = -1;
+
+                        return AppState::PLAYER_MENU;
                     }
                     else
                     {
-                        // Get current player's score from database
-                        const Player &p = g_playerDb.getPlayer(g_currentPlayer);
-                        int score = p.totalScore;
+                        // First press (or trying again): join queue and search for opponent
+                        const Player &self = g_playerDb.getPlayer(g_currentPlayer);
+                        int scoreForQueue = self.totalScore;   // used as priority
 
-                        bool added = g_matchmaking.addPlayer(g_currentPlayer, score);
-                        if (added)
+                        bool added = g_matchmaking.addPlayer(g_currentPlayer, scoreForQueue);
+                        if (!added)
                         {
-                            statusMessage = "You joined the matchmaking queue. Waiting for opponent...";
-                            justJoined = true;
-
-                            // form matches if possible
-                            g_matchmaking.createMatches();
-
-                            // check if we already got matched
-                            int opponentIndex = -1;
-                            bool gotMatch = g_matchmaking.getMatchForPlayer(g_currentPlayer, opponentIndex);
-                            if (gotMatch)
-                            {
-                                const Player &opp = g_playerDb.getPlayer(opponentIndex);
-                                statusMessage = "Matched with: " + opp.username + ". Press ESC to go back.";
-                            }
+                            warning = "You are already in the matchmaking queue.";
                         }
                         else
                         {
-                            statusMessage = "You are already in the matchmaking queue.";
+                            searching = true;
+                            warning.clear();
+                            statusMessage = "Searching for opponent...";
+
+                            // Form matches if possible
+                            g_matchmaking.createMatches();
+
+                            // Check if we already got matched
+                            int opponentIndex = -1;
+                            bool gotMatch = g_matchmaking.getMatchForPlayer(g_currentPlayer, opponentIndex);
+
+                            if (gotMatch && opponentIndex >= 0)
+                            {
+                                const Player &opp = g_playerDb.getPlayer(opponentIndex);
+                                string oppName = opp.nickname.empty() ? opp.username : opp.nickname;
+
+                                matchedOpponent = opponentIndex;
+                                hasMatch = true;
+                                g_secondPlayerIndex = matchedOpponent;
+
+                                matchInfo = "Matched with: " + oppName;
+                                statusMessage = "Press Enter to start the match or Esc to cancel.";
+                            }
+                            else
+                            {
+                                matchInfo.clear();
+                                statusMessage = "No suitable match yet. Press Enter again to search.";
+                            }
                         }
                     }
                 }
             }
         }
 
+        // --------- Drawing UI ----------
         window.clear(theme.backgroundColor);
 
-        // Title
-        Text title;
-        title.setFont(theme.font);
-        title.setString("Matchmaking");
-        title.setCharacterSize(40);
-        title.setFillColor(theme.accentColor);
+        Text title("Matchmaking", theme.font, 32);
+        title.setFillColor(theme.highlightColor);
         FloatRect tb = title.getLocalBounds();
         title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
-        title.setPosition(window.getSize().x / 2.f, 60.f);
+        title.setPosition(window.getSize().x / 2.f, 80.f);
         window.draw(title);
 
-        // Instruction text
-        Text info;
-        info.setFont(theme.font);
-        info.setCharacterSize(22);
+        Text info(statusMessage, theme.font, 22);
         info.setFillColor(theme.textColor);
-        info.setString("ENTER = Join queue, ESC = Back");
-        info.setPosition(40.f, 120.f);
+        info.setPosition(40.f, 150.f);
         window.draw(info);
 
-        // Status message
-        Text status;
-        status.setFont(theme.font);
-        status.setCharacterSize(20);
-        status.setFillColor(theme.textColor);
-        status.setString(statusMessage);
-        status.setPosition(40.f, 170.f);
-        window.draw(status);
+        Text matchText(matchInfo, theme.font, 22);
+        matchText.setFillColor(theme.highlightColor);
+        matchText.setPosition(40.f, 190.f);
+        window.draw(matchText);
+
+        if (!warning.empty())
+        {
+            Text warnText(warning, theme.font, 20);
+            warnText.setFillColor(Color::Red);
+            warnText.setPosition(40.f, 230.f);
+            window.draw(warnText);
+        }
+
+        Text backHint("ESC: Back", theme.font, 18);
+        backHint.setFillColor(theme.textColor);
+        backHint.setPosition(40.f, window.getSize().y - 50.f);
+        window.draw(backHint);
 
         window.display();
     }
 
     return AppState::EXIT_APP;
 }
+
 
 extern int g_currentPlayer;
 extern FriendSystem g_friendSystem;

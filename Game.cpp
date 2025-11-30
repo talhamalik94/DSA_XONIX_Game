@@ -21,6 +21,39 @@ int grid[M][N] = {0};
 // Level selection from Screens.cpp
 extern int g_selectedLevel;
 
+// When matchmaking is used, this holds the opponent player index
+int g_secondPlayerIndex = -1;
+
+// Helper to record any match (single or multi) for a player
+static void recordMatchForPlayer(int playerIndex,
+                                 const string &opponentName,
+                                 const string &result,
+                                 int score)
+{
+    if (playerIndex < 0)
+        return;
+
+    extern PlayerDatabase g_playerDb;
+
+    Player &p = g_playerDb.getPlayerRef(playerIndex);
+
+    MatchRecord r;
+    r.opponent = opponentName;
+    r.result = result;
+    r.score = score;
+
+    time_t now = time(nullptr);
+    tm *lt = localtime(&now);
+    char buf[20];
+    if (lt && strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", lt))
+        r.timestamp = buf;
+    else
+        r.timestamp = "unknown";
+
+    p.history.enqueue(r);
+    p.history.saveToFile(p.username);
+}
+
 // Flood fill for captured area logic
 static void floodFill(int gy, int gx)
 {
@@ -486,12 +519,22 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
     extern int g_currentPlayer;
 
     string p1Name = "P1";
-    if (g_currentPlayer >= 0)
+    int p1Index = g_currentPlayer;
+
+    if (p1Index >= 0)
     {
-        const Player &p = g_playerDb.getPlayer(g_currentPlayer);
-        p1Name = p.nickname.empty() ? p.username : p.nickname;
+        const Player &p = g_playerDb.getPlayer(p1Index);
+        p1Name = p.nickname.empty() ? p.username : p.username;
     }
+
     string p2Name = "P2";
+
+    // If matchmaking provided a second player, show their name as P2
+    if (g_secondPlayerIndex >= 0)
+    {
+        const Player &opp = g_playerDb.getPlayer(g_secondPlayerIndex);
+        p2Name = opp.nickname.empty() ? opp.username : opp.username;
+    }
 
     // Intro screen with explanation
     auto showIntro = [&](const string &title) -> bool
@@ -1136,6 +1179,38 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
         result = p2Name + " wins!";
     else
         result = "Draw!";
+
+    // Record match for logged in players
+    // P1 is the current logged in user if p1Index >= 0
+    if (p1Index >= 0)
+    {
+        string r1;
+        if (p1.score > p2.score)
+            r1 = "WIN";
+        else if (p2.score > p1.score)
+            r1 = "LOSS";
+        else
+            r1 = "DRAW";
+
+        recordMatchForPlayer(p1Index, p2Name, r1, p1.score);
+    }
+
+    // If matchmaking gave us a real second player, record for them too
+    if (g_secondPlayerIndex >= 0)
+    {
+        string r2;
+        if (p2.score > p1.score)
+            r2 = "WIN";
+        else if (p1.score > p2.score)
+            r2 = "LOSS";
+        else
+            r2 = "DRAW";
+
+        recordMatchForPlayer(g_secondPlayerIndex, p1Name, r2, p2.score);
+    }
+
+    // Reset after use so local two player mode is not affected later
+    g_secondPlayerIndex = -1;
 
     while (window.isOpen())
     {
