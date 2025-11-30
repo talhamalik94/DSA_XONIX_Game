@@ -11,6 +11,11 @@ bool loadTheme(Theme& theme)
         cout << "Could not load font file\n";
         return false;
     }
+     if (!theme.font.loadFromFile("fonts/orbitron-bold.otf"))
+    {
+        cout << "Could not load OrbitronBold.otf\n";
+        return false;
+    }
 
     // Default colors (you can tweak)
     theme.backgroundColor    = Color(10, 10, 25);

@@ -24,6 +24,17 @@ int main()
         return 1;
     }
     initDefaultThemes();
+
+    // Apply default menu theme (first in category 0)
+    ThemeInfo *defMenu = g_themeInventory.searchById(g_themeInventory.getFirstIdInCategory(0));
+    if (defMenu)
+        loadMenuBackground(theme, defMenu->menuImagePath);
+
+    // Apply default game theme (first in category 1)
+    ThemeInfo *defGame = g_themeInventory.searchById(g_themeInventory.getFirstIdInCategory(1));
+    if (defGame)
+        loadGameBackground(theme, defGame->gameImagePath);
+
     const int tileSize = ts; // from Config.h
 
     RenderWindow window(VideoMode(N * tileSize, M * tileSize), "Xonix Game");

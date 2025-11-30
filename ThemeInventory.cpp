@@ -146,6 +146,16 @@ void ThemeInventory::insert(const ThemeInfo& info)
 {
     root = insertNode(root, info);
 }
+int ThemeInventory::getFirstIdInCategory(int category)
+{
+    ThemeInfo list[MAX_THEMES];
+    int count = 0;
+    collectByCategory(category, list, count, MAX_THEMES);
+    if (count > 0)
+        return list[0].id;
+    return -1;
+}
+
 
 ThemeInfo* ThemeInventory::searchById(int id)
 {

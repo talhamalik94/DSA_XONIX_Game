@@ -10,11 +10,10 @@ using namespace std;
 #include "Leaderboard.h"
 #include "MatchMaking.h"
 #include "FriendSystem.h"
-#include "MatchHistory.h"  
+#include "MatchHistory.h"
 #include "ThemeInventory.h"
 
-const int MAX_THEMES = 8;  // we inserted 4 + 4
-
+// const int MAX_THEMES = 8;
 
 // Global database and current player index
 PlayerDatabase g_playerDb("players.txt");
@@ -31,7 +30,6 @@ extern MatchmakingSystem g_matchmaking;
 extern MatchHistory g_matchHistory;
 extern int g_secondPlayerIndex;
 
-
 int g_selectedLevel = 0; // 0 = Easy, 1 = Medium, 2 = Hard
 
 // ---------------------------------------------
@@ -43,7 +41,7 @@ int g_selectedLevel = 0; // 0 = Easy, 1 = Medium, 2 = Hard
 void drawThemeBackground(RenderWindow &window, const Theme &theme)
 {
     // Clear with the current theme background color
-    window.clear(theme.backgroundColor);
+    drawMenuBackground(window, theme);
 }
 
 AppState showLandingMenu(RenderWindow &window, const Theme &theme)
@@ -96,7 +94,7 @@ AppState showLandingMenu(RenderWindow &window, const Theme &theme)
 
         // title "XONIX LOGIN"
         Text title;
-        title.setFont(theme.font);
+        title.setFont(theme.titleFont);
         title.setString("XONIX LOGIN");
         title.setCharacterSize(56);
         title.setFillColor(theme.accentColor);
@@ -189,7 +187,7 @@ int runLoginScreen(RenderWindow &window, Theme &theme)
     string password = "";
     string message = "";
 
-    Text title("LOGIN", theme.font, 42);
+    Text title("LOGIN", theme.titleFont, 42);
     title.setFillColor(theme.textColor);
     title.setPosition(200, 40);
 
@@ -321,7 +319,7 @@ int runRegisterScreen(RenderWindow &window, Theme &theme)
     string values[4] = {"", "", "", ""}; // user, pass, nick, email
     int currentField = 0;
 
-    Text title("REGISTER", theme.font, 42);
+    Text title("REGISTER", theme.titleFont, 42);
     title.setFillColor(theme.textColor);
     title.setPosition(180, 40);
 
@@ -447,7 +445,7 @@ int runForgotPasswordScreen(RenderWindow &window, Theme &theme)
     int currentField = 0;
     string message = "";
 
-    Text title("CHANGE PASSWORD", theme.font, 32);
+    Text title("CHANGE PASSWORD", theme.titleFont, 32);
     title.setFillColor(theme.textColor);
     title.setPosition(150, 40);
 
@@ -623,16 +621,26 @@ AppState showPlayerMenu(RenderWindow &window, const Theme &theme)
                 }
                 else if (event.key.code == Keyboard::Enter)
                 {
-                    if (selectedIndex == 0) return AppState::SINGLE_PLAYER;
-                    if (selectedIndex == 1) return AppState::MULTIPLAYER;
-                    if (selectedIndex == 2) return AppState::SELECT_LEVEL;
-                    if (selectedIndex == 3) return AppState::LEADERBOARD;
-                    if (selectedIndex == 4) return AppState::MATCHMAKING;
-                    if (selectedIndex == 5) return AppState::FRIEND_SYSTEM;
-                    if (selectedIndex == 6) return AppState::THEME_INVENTORY;
-                    if (selectedIndex == 7) return AppState::SAVE_LOAD_GAME;
-                    if (selectedIndex == 8) return AppState::SETTINGS;
-                    if (selectedIndex == 9) return AppState::EXIT_APP;  // Logout
+                    if (selectedIndex == 0)
+                        return AppState::SINGLE_PLAYER;
+                    if (selectedIndex == 1)
+                        return AppState::MULTIPLAYER;
+                    if (selectedIndex == 2)
+                        return AppState::SELECT_LEVEL;
+                    if (selectedIndex == 3)
+                        return AppState::LEADERBOARD;
+                    if (selectedIndex == 4)
+                        return AppState::MATCHMAKING;
+                    if (selectedIndex == 5)
+                        return AppState::FRIEND_SYSTEM;
+                    if (selectedIndex == 6)
+                        return AppState::THEME_INVENTORY;
+                    if (selectedIndex == 7)
+                        return AppState::SAVE_LOAD_GAME;
+                    if (selectedIndex == 8)
+                        return AppState::SETTINGS;
+                    if (selectedIndex == 9)
+                        return AppState::EXIT_APP; // Logout
                 }
                 else if (event.key.code == Keyboard::Escape)
                 {
@@ -834,7 +842,7 @@ AppState showMatchmakingScreen(RenderWindow &window, const Theme &theme)
                     {
                         // First press (or trying again): join queue and search for opponent
                         const Player &self = g_playerDb.getPlayer(g_currentPlayer);
-                        int scoreForQueue = self.totalScore;   // used as priority
+                        int scoreForQueue = self.totalScore; // used as priority
 
                         bool added = g_matchmaking.addPlayer(g_currentPlayer, scoreForQueue);
                         if (!added)
@@ -880,7 +888,7 @@ AppState showMatchmakingScreen(RenderWindow &window, const Theme &theme)
         // --------- Drawing UI ----------
         drawThemeBackground(window, theme);
 
-        Text title("Matchmaking", theme.font, 32);
+        Text title("Matchmaking", theme.titleFont, 32);
         title.setFillColor(theme.highlightColor);
         FloatRect tb = title.getLocalBounds();
         title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
@@ -915,7 +923,6 @@ AppState showMatchmakingScreen(RenderWindow &window, const Theme &theme)
 
     return AppState::EXIT_APP;
 }
-
 
 extern int g_currentPlayer;
 extern FriendSystem g_friendSystem;
@@ -975,7 +982,7 @@ AppState showFriendSystemScreen(RenderWindow &window, const Theme &theme)
 
         drawThemeBackground(window, theme);
 
-        Text title("Friend System", theme.font, 38);
+        Text title("Friend System", theme.titleFont, 38);
         title.setFillColor(theme.accentColor);
         title.setPosition(200, 40);
         window.draw(title);
@@ -1074,7 +1081,7 @@ AppState showFriendRequestsScreen(RenderWindow &window, const Theme &theme)
         drawThemeBackground(window, theme);
 
         // Title
-        Text title("Pending Friend Requests", theme.font, 34);
+        Text title("Pending Friend Requests", theme.titleFont, 34);
         title.setFillColor(theme.accentColor);
         title.setPosition(120.f, 50.f);
         window.draw(title);
@@ -1170,7 +1177,7 @@ AppState showSendFriendRequestScreen(RenderWindow &window, const Theme &theme)
         // ---------- DRAW UI ----------
         drawThemeBackground(window, theme);
 
-        Text title("Send Friend Request", theme.font, 34);
+        Text title("Send Friend Request", theme.titleFont, 34);
         title.setFillColor(theme.accentColor);
         title.setPosition(150.f, 50.f);
         window.draw(title);
@@ -1246,7 +1253,7 @@ AppState showViewFriendsScreen(RenderWindow &window, const Theme &theme)
 
         drawThemeBackground(window, theme);
 
-        Text title("Your Friends", theme.font, 34);
+        Text title("Your Friends", theme.titleFont, 34);
         title.setFillColor(theme.accentColor);
         title.setPosition(180, 50);
         window.draw(title);
@@ -1329,7 +1336,7 @@ AppState showProfileScreen(RenderWindow &window, const Theme &theme)
         // -------- DRAW UI --------
         drawThemeBackground(window, theme);
 
-        Text title("Player Profile", theme.font, 36);
+        Text title("Player Profile", theme.titleFont, 36);
         title.setFillColor(theme.accentColor);
         title.setPosition(200.f, 60.f);
         window.draw(title);
@@ -1408,7 +1415,7 @@ AppState showLevelSelectScreen(RenderWindow &window, const Theme &theme)
 
         drawThemeBackground(window, theme);
 
-        Text title("Select Level", theme.font, 36);
+        Text title("Select Level", theme.titleFont, 36);
         title.setFillColor(theme.accentColor);
         title.setPosition(200, 50);
         window.draw(title);
@@ -1512,7 +1519,7 @@ AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
 
         drawThemeBackground(window, theme);
 
-        Text title("Settings", theme.font, 36);
+        Text title("Settings", theme.titleFont, 36);
         title.setFillColor(theme.accentColor);
         title.setPosition(220, 50);
         window.draw(title);
@@ -1581,7 +1588,7 @@ AppState showInstructionsScreen(RenderWindow &window, const Theme &theme)
 
         drawThemeBackground(window, theme);
 
-        Text title("Instructions", theme.font, 36);
+        Text title("Instructions", theme.titleFont, 36);
         title.setFillColor(theme.accentColor);
         title.setPosition(200, 40);
         window.draw(title);
@@ -1606,8 +1613,6 @@ AppState showInstructionsScreen(RenderWindow &window, const Theme &theme)
     return AppState::EXIT_APP;
 }
 
-
-
 AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
 {
     if (g_currentPlayer < 0)
@@ -1617,8 +1622,8 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
     Player &p = g_playerDb.getPlayerRef(g_currentPlayer);
     p.history.loadFromFile(p.username);
 
-    int totalMatches   = p.history.size();
-    int scroll         = 0;
+    int totalMatches = p.history.size();
+    int scroll = 0;
     const int pageSize = 8; // rows visible at once
 
     while (window.isOpen())
@@ -1646,7 +1651,7 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
         drawThemeBackground(window, theme);
 
         // Title
-        Text title("Match History", theme.font, 40);
+        Text title("Match History", theme.titleFont, 40);
         title.setFillColor(theme.accentColor);
         FloatRect tb = title.getLocalBounds();
         title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
@@ -1726,9 +1731,9 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
                 tRes.setString(r.result);
                 tScore.setString(std::to_string(r.score));
 
-                tTime.setPosition(60.f,  y);
-                tOpp .setPosition(260.f, y);
-                tRes .setPosition(440.f, y);
+                tTime.setPosition(60.f, y);
+                tOpp.setPosition(260.f, y);
+                tRes.setPosition(440.f, y);
                 tScore.setPosition(560.f, y);
 
                 window.draw(tTime);
@@ -1742,38 +1747,49 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
     }
 
     return AppState::EXIT_APP;
-
-
-    
 }
 
-AppState showMultiplayerScreen(RenderWindow& window, const Theme& theme)
+AppState showMultiplayerScreen(RenderWindow &window, const Theme &theme)
 {
     // Just call the multiplayer game function and then return to player menu
     runMultiplayerGame(window, theme);
     return AppState::PLAYER_MENU;
 }
 
-
 // Helper: show 2x2 grid for given category (0 = menu, 1 = game)
-static void runThemeGrid(RenderWindow& window, Theme& theme, int category)
+static void runThemeGrid(RenderWindow &window, Theme &theme, int category)
 {
     ThemeInfo list[MAX_THEMES];
     int count = 0;
     g_themeInventory.collectByCategory(category, list, count, MAX_THEMES);
 
-    if (count == 0) return;
+    if (count == 0)
+        return;
 
     Texture thumbs[MAX_THEMES];
-    Sprite  sprites[MAX_THEMES];
+    Sprite sprites[MAX_THEMES];
 
     for (int i = 0; i < count; i++)
     {
         std::string path = (category == 0) ? list[i].menuImagePath
                                            : list[i].gameImagePath;
         thumbs[i].loadFromFile(path);
+
         sprites[i].setTexture(thumbs[i]);
-        sprites[i].setScale(0.35f, 0.35f);
+
+        // Auto-scale so every thumbnail fits 200×130 area
+        float maxW = 200.f;
+        float maxH = 130.f;
+
+        float texW = thumbs[i].getSize().x;
+        float texH = thumbs[i].getSize().y;
+
+        float scaleX = maxW / texW;
+        float scaleY = maxH / texH;
+
+        float finalScale = std::min(scaleX, scaleY);
+
+        sprites[i].setScale(finalScale, finalScale);
     }
 
     int selected = 0;
@@ -1839,7 +1855,7 @@ static void runThemeGrid(RenderWindow& window, Theme& theme, int category)
                         if (!idInput.empty())
                         {
                             int id = atoi(idInput.c_str());
-                            ThemeInfo* found = g_themeInventory.searchById(id);
+                            ThemeInfo *found = g_themeInventory.searchById(id);
 
                             if (found && found->category == category)
                             {
@@ -1870,7 +1886,7 @@ static void runThemeGrid(RenderWindow& window, Theme& theme, int category)
         // Title
         Text title(category == 0 ? "Select Main Menu Theme"
                                  : "Select Game Background",
-                   theme.font, 28);
+                   theme.titleFont, 30);
         title.setFillColor(theme.accentColor);
         title.setPosition(70.f, 30.f);
         window.draw(title);
@@ -1919,8 +1935,7 @@ static void runThemeGrid(RenderWindow& window, Theme& theme, int category)
             }
 
             // show ID + name under each thumb
-            std::string caption = "ID " + std::to_string(list[i].id)
-                                  + " - " + list[i].name;
+            std::string caption = "ID " + std::to_string(list[i].id) + " - " + list[i].name;
 
             Text cap(caption, theme.font, 16);
             cap.setFillColor(theme.textColor);
@@ -1939,14 +1954,13 @@ static void runThemeGrid(RenderWindow& window, Theme& theme, int category)
 }
 
 // Main Inventory wrapper: choose category then open grid
-AppState showThemeInventoryScreen(RenderWindow& window, Theme& theme)
+AppState showThemeInventoryScreen(RenderWindow &window, Theme &theme)
 {
     const int optionCount = 3;
-    const char* options[optionCount] = {
+    const char *options[optionCount] = {
         "Main Menu Themes",
         "Game Background Themes",
-        "Back"
-    };
+        "Back"};
     int selected = 0;
 
     while (window.isOpen())
@@ -1968,9 +1982,9 @@ AppState showThemeInventoryScreen(RenderWindow& window, Theme& theme)
                 else if (e.key.code == Keyboard::Enter)
                 {
                     if (selected == 0)
-                        runThemeGrid(window, theme, 0);  // menu themes
+                        runThemeGrid(window, theme, 0); // menu themes
                     else if (selected == 1)
-                        runThemeGrid(window, theme, 1);  // game backgrounds
+                        runThemeGrid(window, theme, 1); // game backgrounds
                     else
                         return AppState::PLAYER_MENU;
                 }
@@ -1979,7 +1993,7 @@ AppState showThemeInventoryScreen(RenderWindow& window, Theme& theme)
 
         drawMenuBackground(window, theme);
 
-        Text title("Theme Inventory", theme.font, 34);
+        Text title("Theme Inventory", theme.titleFont, 34);
         title.setFillColor(theme.accentColor);
         title.setPosition(150.f, 60.f);
         window.draw(title);

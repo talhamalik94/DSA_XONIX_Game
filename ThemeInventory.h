@@ -3,6 +3,8 @@
 
 #include <string>
 
+const int MAX_THEMES = 8;
+
 // Theme category: 0 = main-menu background, 1 = in-game background
 struct ThemeInfo
 {
@@ -43,8 +45,8 @@ public:
 
     void insert(const ThemeInfo& info);
     ThemeInfo* searchById(int id);
-    void collectByCategory(int category,
-                           ThemeInfo outArray[], int& outCount, int maxCount);
+    int getFirstIdInCategory(int category);
+    void collectByCategory(int category,ThemeInfo outArray[], int& outCount, int maxCount);
 };
 
 extern ThemeInventory g_themeInventory;

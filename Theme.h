@@ -6,7 +6,9 @@
 
 struct Theme
 {
-    Font  font;
+    // Fonts
+    Font  font;       // Main UI font: Orbitron
+    Font  titleFont;  // Big titles: MadisonStreet
 
     // Colors
     Color backgroundColor;
