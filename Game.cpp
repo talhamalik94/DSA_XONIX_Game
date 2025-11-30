@@ -380,7 +380,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme)
         // -------------------------------------------
         //                DRAWING
         // -------------------------------------------
-        window.clear(theme.backgroundColor);
+        drawGameBackground(window, theme);
+
         starfield.draw(window, theme.starColor);
 
         // Tiles
@@ -559,7 +560,8 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
                 }
             }
 
-            window.clear(theme.backgroundColor);
+            drawGameBackground(window, theme);
+
 
             Text tTitle(title, theme.font, 32);
             tTitle.setFillColor(theme.highlightColor);
@@ -1067,7 +1069,8 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
 
         // ------------------ DRAW ------------------
         starfield.update(dt);
-        window.clear(theme.backgroundColor);
+        drawGameBackground(window, theme);
+
         starfield.draw(window, theme.starColor);
 
         // draw grid
@@ -1231,7 +1234,8 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawGameBackground(window, theme);
+
 
         Text t1("Multiplayer Result", theme.font, 32);
         t1.setFillColor(theme.highlightColor);

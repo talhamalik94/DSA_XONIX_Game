@@ -9,6 +9,7 @@ using namespace std;
 #include "PlayerDatabase.h"
 #include "Config.h"
 #include "FriendSystem.h"
+#include "ThemeInventory.h"
 
 // database and current player created in Screens.cpp
 extern PlayerDatabase g_playerDb;
@@ -22,7 +23,7 @@ int main()
         cout << "Failed to load theme font.\n";
         return 1;
     }
-
+    initDefaultThemes();
     const int tileSize = ts; // from Config.h
 
     RenderWindow window(VideoMode(N * tileSize, M * tileSize), "Xonix Game");
@@ -121,6 +122,11 @@ int main()
         {
             state = showMatchHistoryScreen(window, theme);
         }
+        else if (state == AppState::THEME_INVENTORY)
+        {
+            state = showThemeInventoryScreen(window, theme);
+        }
+
         else if (state == AppState::EXIT_APP)
         {
             running = false;

@@ -11,6 +11,10 @@ using namespace std;
 #include "MatchMaking.h"
 #include "FriendSystem.h"
 #include "MatchHistory.h"  
+#include "ThemeInventory.h"
+
+const int MAX_THEMES = 8;  // we inserted 4 + 4
+
 
 // Global database and current player index
 PlayerDatabase g_playerDb("players.txt");
@@ -34,6 +38,14 @@ int g_selectedLevel = 0; // 0 = Easy, 1 = Medium, 2 = Hard
 // LANDING MENU  (first page)
 // Options: Login / Register / Forgot Password / Exit
 // ---------------------------------------------
+
+// Simple background drawer used by all menu-like screens
+void drawThemeBackground(RenderWindow &window, const Theme &theme)
+{
+    // Clear with the current theme background color
+    window.clear(theme.backgroundColor);
+}
+
 AppState showLandingMenu(RenderWindow &window, const Theme &theme)
 {
     int selectedIndex = 0;
@@ -80,7 +92,7 @@ AppState showLandingMenu(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         // title "XONIX LOGIN"
         Text title;
@@ -280,7 +292,7 @@ int runLoginScreen(RenderWindow &window, Theme &theme)
         userText.setString(username);
         passText.setString(string(password.size(), '*'));
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         window.draw(title);
         window.draw(promptUser);
@@ -408,7 +420,7 @@ int runRegisterScreen(RenderWindow &window, Theme &theme)
                                        : theme.textColor);
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         window.draw(title);
         for (int i = 0; i < 4; i++)
@@ -538,7 +550,7 @@ int runForgotPasswordScreen(RenderWindow &window, Theme &theme)
                                        : theme.textColor);
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         window.draw(title);
         for (int i = 0; i < 3; i++)
@@ -574,7 +586,8 @@ AppState showPlayerMenu(RenderWindow &window, const Theme &theme)
 {
     int selectedIndex = 0;
 
-    const int optionCount = 13;
+    // Shorter main menu
+    const int optionCount = 10;
     const char *options[optionCount] = {
         "Start Game",
         "Multiplayer",
@@ -584,10 +597,7 @@ AppState showPlayerMenu(RenderWindow &window, const Theme &theme)
         "Friend System",
         "Theme Inventory",
         "Save / Load Game",
-        "Instructions",
         "Settings",
-        "View Profile",
-        "Match History",
         "Logout"};
 
     while (window.isOpen())
@@ -613,45 +623,25 @@ AppState showPlayerMenu(RenderWindow &window, const Theme &theme)
                 }
                 else if (event.key.code == Keyboard::Enter)
                 {
-                    if (event.key.code == Keyboard::Enter)
-                    {
-                        if (selectedIndex == 0)
-                            return AppState::SINGLE_PLAYER;
-                        if (selectedIndex == 1)
-                            return AppState::MULTIPLAYER;
-                        if (selectedIndex == 2)
-                            return AppState::SELECT_LEVEL;
-                        if (selectedIndex == 3)
-                            return AppState::LEADERBOARD;
-                        if (selectedIndex == 4)
-                            return AppState::MATCHMAKING;
-                        if (selectedIndex == 5)
-                            return AppState::FRIEND_SYSTEM;
-                        if (selectedIndex == 6)
-                            return AppState::THEME_INVENTORY;
-                        if (selectedIndex == 7)
-                            return AppState::SAVE_LOAD_GAME;
-                        if (selectedIndex == 8)
-                            return AppState::INSTRUCTIONS;
-                        if (selectedIndex == 9)
-                            return AppState::SETTINGS;
-                        if (selectedIndex == 10)
-                            return AppState::PROFILE_SCREEN;
-                        if (selectedIndex == 11)
-                            return AppState::MATCH_HISTORY_SCREEN;
-                        if (selectedIndex == 12)
-                            return AppState::EXIT_APP; // Logout
-                    }
+                    if (selectedIndex == 0) return AppState::SINGLE_PLAYER;
+                    if (selectedIndex == 1) return AppState::MULTIPLAYER;
+                    if (selectedIndex == 2) return AppState::SELECT_LEVEL;
+                    if (selectedIndex == 3) return AppState::LEADERBOARD;
+                    if (selectedIndex == 4) return AppState::MATCHMAKING;
+                    if (selectedIndex == 5) return AppState::FRIEND_SYSTEM;
+                    if (selectedIndex == 6) return AppState::THEME_INVENTORY;
+                    if (selectedIndex == 7) return AppState::SAVE_LOAD_GAME;
+                    if (selectedIndex == 8) return AppState::SETTINGS;
+                    if (selectedIndex == 9) return AppState::EXIT_APP;  // Logout
                 }
                 else if (event.key.code == Keyboard::Escape)
                 {
-                    // Esc logs out back to landing menu
                     return AppState::LANDING_MENU;
                 }
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         // Title "XONIX"
         Text title;
@@ -665,18 +655,25 @@ AppState showPlayerMenu(RenderWindow &window, const Theme &theme)
         title.setPosition(window.getSize().x / 2.f, 70.f);
         window.draw(title);
 
-        // Draw options as a vertical list
+        // Compute vertical layout so everything fits
+        const float stepY = 30.f; // space between options
+        float menuHeight = optionCount * stepY;
+        // start a bit below title, centered in remaining space
+        float startY = (window.getSize().y - menuHeight) / 2.f + 40.f;
+
         for (int i = 0; i < optionCount; i++)
         {
             Text opt;
             opt.setFont(theme.font);
             opt.setString(options[i]);
-            opt.setCharacterSize(28);
-            opt.setFillColor(i == selectedIndex ? theme.highlightColor : theme.textColor);
+            opt.setCharacterSize(26); // a bit smaller so it fits nicely
+
+            opt.setFillColor(i == selectedIndex ? theme.highlightColor
+                                                : theme.textColor);
 
             FloatRect ob = opt.getLocalBounds();
             opt.setOrigin(ob.left + ob.width / 2.f, ob.top + ob.height / 2.f);
-            opt.setPosition(window.getSize().x / 2.f, 160.f + i * 36.f);
+            opt.setPosition(window.getSize().x / 2.f, startY + i * stepY);
 
             window.draw(opt);
         }
@@ -719,7 +716,7 @@ AppState showLeaderboardScreen(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         // Title
         Text title;
@@ -881,7 +878,7 @@ AppState showMatchmakingScreen(RenderWindow &window, const Theme &theme)
         }
 
         // --------- Drawing UI ----------
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Matchmaking", theme.font, 32);
         title.setFillColor(theme.highlightColor);
@@ -976,7 +973,7 @@ AppState showFriendSystemScreen(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Friend System", theme.font, 38);
         title.setFillColor(theme.accentColor);
@@ -1074,7 +1071,7 @@ AppState showFriendRequestsScreen(RenderWindow &window, const Theme &theme)
         }
 
         // ---------- DRAW UI ----------
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         // Title
         Text title("Pending Friend Requests", theme.font, 34);
@@ -1171,7 +1168,7 @@ AppState showSendFriendRequestScreen(RenderWindow &window, const Theme &theme)
         }
 
         // ---------- DRAW UI ----------
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Send Friend Request", theme.font, 34);
         title.setFillColor(theme.accentColor);
@@ -1247,7 +1244,7 @@ AppState showViewFriendsScreen(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Your Friends", theme.font, 34);
         title.setFillColor(theme.accentColor);
@@ -1330,7 +1327,7 @@ AppState showProfileScreen(RenderWindow &window, const Theme &theme)
         }
 
         // -------- DRAW UI --------
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Player Profile", theme.font, 36);
         title.setFillColor(theme.accentColor);
@@ -1409,7 +1406,7 @@ AppState showLevelSelectScreen(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Select Level", theme.font, 36);
         title.setFillColor(theme.accentColor);
@@ -1437,13 +1434,23 @@ AppState showLevelSelectScreen(RenderWindow &window, const Theme &theme)
 
 AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
 {
-    // Settings stored using simple array or struct
+    // Settings stored using simple static variables
     static int soundOn = 1;
     static int volume = 5;
     static int selected = 0;
 
-    const int optionCount = 3;
+    // New settings menu:
+    //  0 Instructions
+    //  1 Player Profile
+    //  2 Match History
+    //  3 Toggle Sound
+    //  4 Volume
+    //  5 Back to Player Menu
+    const int optionCount = 6;
     const char *options[optionCount] = {
+        "Instructions",
+        "Player Profile",
+        "Match History",
         "Toggle Sound",
         "Volume",
         "Back"};
@@ -1470,16 +1477,40 @@ AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
                 if (e.key.code == Keyboard::Enter)
                 {
                     if (selected == 0)
-                        soundOn = !soundOn;
+                    {
+                        // Open Instructions screen
+                        return AppState::INSTRUCTIONS;
+                    }
                     if (selected == 1)
-                        volume = (volume + 1) % 11;
+                    {
+                        // Open Player Profile screen
+                        return AppState::PROFILE_SCREEN;
+                    }
                     if (selected == 2)
+                    {
+                        // Open Match History screen
+                        return AppState::MATCH_HISTORY_SCREEN;
+                    }
+                    if (selected == 3)
+                    {
+                        // Toggle sound on or off
+                        soundOn = !soundOn;
+                    }
+                    if (selected == 4)
+                    {
+                        // Change volume 0 to 10
+                        volume = (volume + 1) % 11;
+                    }
+                    if (selected == 5)
+                    {
+                        // Back to player menu
                         return AppState::PLAYER_MENU;
+                    }
                 }
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Settings", theme.font, 36);
         title.setFillColor(theme.accentColor);
@@ -1488,12 +1519,13 @@ AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
 
         for (int i = 0; i < optionCount; i++)
         {
-            string text = options[i];
+            std::string text = options[i];
 
-            if (i == 0)
+            // Show current values for Toggle Sound and Volume
+            if (i == 3)
                 text += soundOn ? " : ON" : " : OFF";
-            if (i == 1)
-                text += " : " + to_string(volume);
+            if (i == 4)
+                text += " : " + std::to_string(volume);
 
             Text t(text, theme.font, 26);
             t.setFillColor(i == selected ? theme.highlightColor : theme.textColor);
@@ -1547,7 +1579,7 @@ AppState showInstructionsScreen(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         Text title("Instructions", theme.font, 36);
         title.setFillColor(theme.accentColor);
@@ -1611,7 +1643,7 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
             }
         }
 
-        window.clear(theme.backgroundColor);
+        drawThemeBackground(window, theme);
 
         // Title
         Text title("Match History", theme.font, 40);
@@ -1720,4 +1752,248 @@ AppState showMultiplayerScreen(RenderWindow& window, const Theme& theme)
     // Just call the multiplayer game function and then return to player menu
     runMultiplayerGame(window, theme);
     return AppState::PLAYER_MENU;
+}
+
+
+// Helper: show 2x2 grid for given category (0 = menu, 1 = game)
+static void runThemeGrid(RenderWindow& window, Theme& theme, int category)
+{
+    ThemeInfo list[MAX_THEMES];
+    int count = 0;
+    g_themeInventory.collectByCategory(category, list, count, MAX_THEMES);
+
+    if (count == 0) return;
+
+    Texture thumbs[MAX_THEMES];
+    Sprite  sprites[MAX_THEMES];
+
+    for (int i = 0; i < count; i++)
+    {
+        std::string path = (category == 0) ? list[i].menuImagePath
+                                           : list[i].gameImagePath;
+        thumbs[i].loadFromFile(path);
+        sprites[i].setTexture(thumbs[i]);
+        sprites[i].setScale(0.35f, 0.35f);
+    }
+
+    int selected = 0;
+    bool typingId = false;
+    std::string idInput = "";
+
+    while (window.isOpen())
+    {
+        Event e;
+        while (window.pollEvent(e))
+        {
+            if (e.type == Event::Closed)
+                return;
+
+            if (e.type == Event::KeyPressed)
+            {
+                if (!typingId)
+                {
+                    if (e.key.code == Keyboard::Escape)
+                        return;
+
+                    if (e.key.code == Keyboard::Left)
+                        selected = (selected - 1 + count) % count;
+                    else if (e.key.code == Keyboard::Right)
+                        selected = (selected + 1) % count;
+                    else if (e.key.code == Keyboard::Up)
+                        selected = (selected - 2 + count) % count;
+                    else if (e.key.code == Keyboard::Down)
+                        selected = (selected + 2) % count;
+
+                    else if (e.key.code == Keyboard::Enter)
+                    {
+                        // Apply selected theme
+                        if (category == 0)
+                            loadMenuBackground(theme, list[selected].menuImagePath);
+                        else
+                            loadGameBackground(theme, list[selected].gameImagePath);
+
+                        return;
+                    }
+                    else if (e.key.code == Keyboard::I)
+                    {
+                        // start typing Theme ID
+                        typingId = true;
+                        idInput.clear();
+                    }
+                }
+                else
+                {
+                    // typing ID mode
+                    if (e.key.code == Keyboard::Escape)
+                    {
+                        typingId = false;
+                        idInput.clear();
+                    }
+                    else if (e.key.code == Keyboard::BackSpace)
+                    {
+                        if (!idInput.empty())
+                            idInput.erase(idInput.size() - 1);
+                    }
+                    else if (e.key.code == Keyboard::Enter)
+                    {
+                        if (!idInput.empty())
+                        {
+                            int id = atoi(idInput.c_str());
+                            ThemeInfo* found = g_themeInventory.searchById(id);
+
+                            if (found && found->category == category)
+                            {
+                                if (category == 0)
+                                    loadMenuBackground(theme, found->menuImagePath);
+                                else
+                                    loadGameBackground(theme, found->gameImagePath);
+
+                                return; // applied
+                            }
+                        }
+                        typingId = false;
+                    }
+                }
+            }
+            else if (e.type == Event::TextEntered && typingId)
+            {
+                if (e.text.unicode >= '0' && e.text.unicode <= '9')
+                {
+                    if (idInput.size() < 5)
+                        idInput.push_back((char)e.text.unicode);
+                }
+            }
+        }
+
+        drawMenuBackground(window, theme);
+
+        // Title
+        Text title(category == 0 ? "Select Main Menu Theme"
+                                 : "Select Game Background",
+                   theme.font, 28);
+        title.setFillColor(theme.accentColor);
+        title.setPosition(70.f, 30.f);
+        window.draw(title);
+
+        // ID input bar (like your screenshot)
+        Text label("ENTER THEME ID:", theme.font, 20);
+        label.setFillColor(theme.textColor);
+        label.setPosition(70.f, 70.f);
+        window.draw(label);
+
+        Rectangle box;
+        box.setSize(Vec2(80.f, 28.f));
+        box.setPosition(260.f, 68.f);
+        box.setFillColor(Color(0, 0, 0, 150));
+        box.setOutlineColor(theme.highlightColor);
+        box.setOutlineThickness(2.f);
+        window.draw(box);
+
+        Text idText(idInput, theme.font, 20);
+        idText.setFillColor(theme.highlightColor);
+        idText.setPosition(270.f, 70.f);
+        window.draw(idText);
+
+        // Grid of thumbnails 2 x 2 (or more if count >= 4)
+        for (int i = 0; i < count; i++)
+        {
+            int row = i / 2;
+            int col = i % 2;
+
+            float x = 80.f + col * 220.f;
+            float y = 120.f + row * 160.f;
+
+            sprites[i].setPosition(x, y);
+            window.draw(sprites[i]);
+
+            // border if selected
+            if (i == selected)
+            {
+                Rectangle border;
+                border.setSize(Vec2(200.f, 130.f));
+                border.setPosition(x - 5.f, y - 5.f);
+                border.setFillColor(Color::Transparent);
+                border.setOutlineColor(theme.highlightColor);
+                border.setOutlineThickness(4.f);
+                window.draw(border);
+            }
+
+            // show ID + name under each thumb
+            std::string caption = "ID " + std::to_string(list[i].id)
+                                  + " - " + list[i].name;
+
+            Text cap(caption, theme.font, 16);
+            cap.setFillColor(theme.textColor);
+            cap.setPosition(x, y + 135.f);
+            window.draw(cap);
+        }
+
+        Text hint("Arrows: move   Enter: apply   I: enter ID   Esc: back",
+                  theme.font, 16);
+        hint.setFillColor(theme.textColor);
+        hint.setPosition(40.f, window.getSize().y - 30.f);
+        window.draw(hint);
+
+        window.display();
+    }
+}
+
+// Main Inventory wrapper: choose category then open grid
+AppState showThemeInventoryScreen(RenderWindow& window, Theme& theme)
+{
+    const int optionCount = 3;
+    const char* options[optionCount] = {
+        "Main Menu Themes",
+        "Game Background Themes",
+        "Back"
+    };
+    int selected = 0;
+
+    while (window.isOpen())
+    {
+        Event e;
+        while (window.pollEvent(e))
+        {
+            if (e.type == Event::Closed)
+                return AppState::EXIT_APP;
+
+            if (e.type == Event::KeyPressed)
+            {
+                if (e.key.code == Keyboard::Up)
+                    selected = (selected - 1 + optionCount) % optionCount;
+                else if (e.key.code == Keyboard::Down)
+                    selected = (selected + 1) % optionCount;
+                else if (e.key.code == Keyboard::Escape)
+                    return AppState::PLAYER_MENU;
+                else if (e.key.code == Keyboard::Enter)
+                {
+                    if (selected == 0)
+                        runThemeGrid(window, theme, 0);  // menu themes
+                    else if (selected == 1)
+                        runThemeGrid(window, theme, 1);  // game backgrounds
+                    else
+                        return AppState::PLAYER_MENU;
+                }
+            }
+        }
+
+        drawMenuBackground(window, theme);
+
+        Text title("Theme Inventory", theme.font, 34);
+        title.setFillColor(theme.accentColor);
+        title.setPosition(150.f, 60.f);
+        window.draw(title);
+
+        for (int i = 0; i < optionCount; i++)
+        {
+            Text t(options[i], theme.font, 26);
+            t.setFillColor(i == selected ? theme.highlightColor : theme.textColor);
+            t.setPosition(170.f, 150.f + i * 45.f);
+            window.draw(t);
+        }
+
+        window.display();
+    }
+
+    return AppState::EXIT_APP;
 }

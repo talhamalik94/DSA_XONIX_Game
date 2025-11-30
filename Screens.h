@@ -65,6 +65,10 @@ AppState showMatchHistoryScreen(RenderWindow& window, const Theme& theme);
 // Multiplayer wrapper screen
 AppState showMultiplayerScreen(RenderWindow& window, const Theme& theme);
 
+// Theme inventory
+AppState showThemeInventoryScreen(RenderWindow& window, Theme& theme);
+
+
 // Forms
 int runLoginScreen(RenderWindow& window, Theme& theme);
 int runRegisterScreen(RenderWindow& window, Theme& theme);
