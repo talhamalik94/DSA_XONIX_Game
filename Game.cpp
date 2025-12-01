@@ -14,6 +14,7 @@ using namespace std;
 #include "PowerUpStack.h"
 #include "PlayerDatabase.h"
 #include "MatchHistory.h"
+#include "SaveGame.h"
 
 // Main grid definition
 int grid[M][N] = {0};
@@ -23,6 +24,20 @@ extern int g_selectedLevel;
 
 // When matchmaking is used, this holds the opponent player index
 int g_secondPlayerIndex = -1;
+
+// Helper to generate a simple unique save ID per player
+static string makeSaveId(const string &playerId)
+{
+    // Example: malik_2025_12_01_17_45_32
+    string stamp = getCurrentTimestamp(); // "YYYY-MM-DD HH:MM:SS"
+    for (char &c : stamp)
+    {
+        if (c == ' ' || c == ':' || c == '-')
+            c = '_';
+    }
+    return playerId + "_" + stamp;
+}
+
 
 // Helper to record any match (single or multi) for a player
 static void recordMatchForPlayer(int playerIndex,
@@ -74,7 +89,7 @@ static void floodFill(int gy, int gx)
 // -------------------------------------------
 //              MAIN GAME FUNCTION
 // -------------------------------------------
-int runSinglePlayerGame(RenderWindow &window, const Theme &theme)
+int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameState *loadedState)
 {
     srand(static_cast<unsigned int>(time(nullptr)));
 
@@ -114,7 +129,7 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme)
         for (int j = 0; j < N; j++)
             grid[i][j] = (i == 0 || j == 0 || i == M - 1 || j == N - 1) ? 1 : 0;
 
-    // Player starts on top border, safe
+    // Player starts on top border by default
     int playerX = N / 2;
     int playerY = 0;
     int dirX = 0, dirY = 0;
@@ -123,6 +138,58 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme)
     bool exitGame = false;
 
     int finalScore = 0;
+
+    // -------------------------------------------
+    //       APPLY LOADED STATE (if any)
+    // -------------------------------------------
+    if (loadedState != nullptr && !loadedState->isMultiplayer)
+    {
+        // Restore tiles using the linked list
+        applyGameStateToGrid(*loadedState, grid);
+
+        // Restore basic player info
+        playerX = loadedState->playerX;
+        playerY = loadedState->playerY;
+
+        // Map direction 0/1/2/3 to dirX/dirY
+        switch (loadedState->dir)
+        {
+        case 0:
+            dirX = 1;
+            dirY = 0;
+            break; // right
+        case 1:
+            dirX = 0;
+            dirY = 1;
+            break; // down
+        case 2:
+            dirX = -1;
+            dirY = 0;
+            break; // left
+        case 3:
+            dirX = 0;
+            dirY = -1;
+            break; // up
+        default:
+            dirX = 0;
+            dirY = 0;
+            break;
+        }
+
+        finalScore = loadedState->score;
+
+        // Restore enemies
+        int enemyCountFromSave = loadedState->enemyCount;
+        if (enemyCountFromSave > enemyCount)
+            enemyCountFromSave = enemyCount;
+        for (int i = 0; i < enemyCountFromSave; ++i)
+        {
+            enemies[i].x = loadedState->ex[i] * ts;
+            enemies[i].y = loadedState->ey[i] * ts;
+            enemies[i].dx = loadedState->evx[i];
+            enemies[i].dy = loadedState->evy[i];
+        }
+    }
 
     Clock clock;
     float timer = 0;
@@ -195,6 +262,79 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme)
                     {
                         enemiesFrozen = true;
                         freezeTimer = 3.f; // freeze for 3 seconds
+                    }
+                }
+
+                // --------- SAVE GAME (S key) ----------
+                if (event.key.code == Keyboard::S)
+                {
+                    // Only save if someone is logged in
+                    extern PlayerDatabase g_playerDb;
+                    extern int g_currentPlayer;
+
+                    if (g_currentPlayer < 0 ||
+                        g_currentPlayer >= g_playerDb.getSize())
+                    {
+                        cout << "Cannot save: no player logged in.\n";
+                    }
+                    else
+                    {
+                        const Player &p = g_playerDb.getPlayer(g_currentPlayer);
+
+                        GameState state;
+                        state.isMultiplayer = false;
+                        state.playerId = p.username;
+                        state.timestamp = getCurrentTimestamp();
+                        state.level = g_selectedLevel;
+                        state.playerX = playerX;
+                        state.playerY = playerY;
+
+                        // Convert direction into 0..3
+                        if (dirX == 1 && dirY == 0)
+                            state.dir = 0;
+                        else if (dirX == 0 && dirY == 1)
+                            state.dir = 1;
+                        else if (dirX == -1 && dirY == 0)
+                            state.dir = 2;
+                        else if (dirX == 0 && dirY == -1)
+                            state.dir = 3;
+                        else
+                            state.dir = 0;
+
+                        state.isDrawing = false; // your game logic does not track this, safe default
+                        state.score = finalScore;
+                        state.lives = 3;           // simple default
+                        state.totalLandTiles = 0;  // optional
+                        state.targetLandTiles = 0; // optional
+
+                        state.currentStrokeTiles = 0;
+
+                        // Enemy info
+                        state.enemyCount = enemyCount;
+                        for (int i = 0; i < enemyCount; ++i)
+                        {
+                            state.ex[i] = static_cast<int>(enemies[i].y / ts);
+                            state.ey[i] = static_cast<int>(enemies[i].x / ts);
+                            state.evx[i] = enemies[i].dx;
+                            state.evy[i] = enemies[i].dy;
+                        }
+
+                        // Power up stack is not directly stored here.
+                        // Linked list of tiles:
+                        buildGameStateFromGrid(state, grid);
+
+                        // Build a unique ID and save
+                        state.saveId = makeSaveId(p.username);
+
+                        SaveGameManager mgr;
+                        if (mgr.saveGameState(state))
+                        {
+                            cout << "Game saved with ID: " << state.saveId << "\n";
+                        }
+                        else
+                        {
+                            cout << "Failed to save game.\n";
+                        }
                     }
                 }
             }
@@ -499,7 +639,9 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme)
 }
 
 // ----------------- MULTIPLAYER (TURN BY TURN) -----------------
-int runMultiplayerGame(RenderWindow &window, const Theme &theme)
+int runMultiplayerGame(RenderWindow &window,
+                       const Theme &theme,
+                       const GameState *loadedState)
 {
     // We reuse the global grid[M][N]
     extern int grid[M][N];
@@ -561,7 +703,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
             }
 
             drawGameBackground(window, theme);
-
 
             Text tTitle(title, theme.font, 32);
             tTitle.setFillColor(theme.highlightColor);
@@ -1235,7 +1376,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme)
         }
 
         drawGameBackground(window, theme);
-
 
         Text t1("Multiplayer Result", theme.font, 32);
         t1.setFillColor(theme.highlightColor);

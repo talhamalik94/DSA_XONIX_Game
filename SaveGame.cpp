@@ -329,6 +329,4 @@ void applyGameStateToGrid(const GameState& state, int gridArr[M][N])
         gridArr[r][N - 1] = 1;
     }
 
-    // Multiplayer specific: we also clear trailOwner to avoid dirty collisions
-    clearTrailOwner();
 }

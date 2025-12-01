@@ -68,6 +68,8 @@ AppState showMultiplayerScreen(RenderWindow& window, const Theme& theme);
 // Theme inventory
 AppState showThemeInventoryScreen(RenderWindow& window, Theme& theme);
 
+AppState showSaveLoadGameScreen(RenderWindow &window, const Theme &theme);
+
 
 // Forms
 int runLoginScreen(RenderWindow& window, Theme& theme);

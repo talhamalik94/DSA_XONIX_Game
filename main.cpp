@@ -89,6 +89,10 @@ int main()
             runMultiplayerGame(window, theme);
             state = AppState::PLAYER_MENU;
         }
+         else if (state == AppState::SAVE_LOAD_GAME)    
+        {
+            state = showSaveLoadGameScreen(window, theme);
+        }
         else if (state == AppState::LEADERBOARD)
         {
             state = showLeaderboardScreen(window, theme);

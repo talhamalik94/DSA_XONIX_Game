@@ -12,6 +12,7 @@ using namespace std;
 #include "FriendSystem.h"
 #include "MatchHistory.h"
 #include "ThemeInventory.h"
+#include "SaveGame.h"   
 
 // const int MAX_THEMES = 8;
 
@@ -2005,6 +2006,139 @@ AppState showThemeInventoryScreen(RenderWindow &window, Theme &theme)
             t.setPosition(170.f, 150.f + i * 45.f);
             window.draw(t);
         }
+
+        window.display();
+    }
+
+    return AppState::EXIT_APP;
+}
+
+AppState showSaveLoadGameScreen(RenderWindow &window, const Theme &theme)
+{
+    extern PlayerDatabase g_playerDb;
+    extern int g_currentPlayer;
+
+    string inputId;
+    string status = "Enter Save ID and press Enter. ESC = Back.";
+
+    while (window.isOpen())
+    {
+        Event e;
+        while (window.pollEvent(e))
+        {
+            if (e.type == Event::Closed)
+            {
+                window.close();
+                return AppState::EXIT_APP;
+            }
+
+            if (e.type == Event::TextEntered)
+            {
+                if (e.text.unicode == 8) // backspace
+                {
+                    if (!inputId.empty())
+                        inputId.pop_back();
+                }
+                else if (e.text.unicode >= 32 && e.text.unicode < 127)
+                {
+                    inputId.push_back(static_cast<char>(e.text.unicode));
+                }
+            }
+
+            if (e.type == Event::KeyPressed)
+            {
+                if (e.key.code == Keyboard::Escape)
+                {
+                    return AppState::PLAYER_MENU;
+                }
+
+                if (e.key.code == Keyboard::Enter)
+                {
+                    if (inputId.empty())
+                    {
+                        status = "Please enter a Save ID.";
+                    }
+                    else
+                    {
+                        SaveGameManager mgr;
+                        GameState state;
+
+                        if (!mgr.loadGameState(inputId, state))
+                        {
+                            status = "No save found with this ID.";
+                        }
+                        else
+                        {
+                            // Check that a player is logged in
+                            if (g_currentPlayer < 0 ||
+                                g_currentPlayer >= g_playerDb.getSize())
+                            {
+                                status = "You must be logged in to load a game.";
+                            }
+                            else
+                            {
+                                const Player &p = g_playerDb.getPlayer(g_currentPlayer);
+
+                                if (state.playerId != p.username)
+                                {
+                                    status = "This save belongs to: " + state.playerId;
+                                }
+                                else
+                                {
+                                    // Single player resume for now
+                                    if (!state.isMultiplayer)
+                                    {
+                                        int score = runSinglePlayerGame(window, theme, &state);
+
+                                        if (g_currentPlayer != -1 && score > 0)
+                                        {
+                                            g_playerDb.updateScore(g_currentPlayer, score);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Placeholder: later we will resume multiplayer
+                                        status = "Multiplayer load not implemented yet.";
+                                    }
+
+                                    return AppState::PLAYER_MENU;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --------- DRAW UI ----------
+        drawThemeBackground(window, theme);
+
+        Text title("Save / Load Game", theme.titleFont, 36);
+        title.setFillColor(theme.accentColor);
+        FloatRect tb = title.getLocalBounds();
+        title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
+        title.setPosition(window.getSize().x / 2.f, 80.f);
+        window.draw(title);
+
+        Text label("Save ID:", theme.font, 24);
+        label.setFillColor(theme.textColor);
+        label.setPosition(80.f, 180.f);
+        window.draw(label);
+
+        Text inputText(inputId, theme.font, 24);
+        inputText.setFillColor(theme.highlightColor);
+        inputText.setPosition(80.f, 220.f);
+        window.draw(inputText);
+
+        Text statusText(status, theme.font, 20);
+        statusText.setFillColor(theme.textColor);
+        statusText.setPosition(80.f, 280.f);
+        window.draw(statusText);
+
+        Text hint("Enter: Load   ESC: Back", theme.font, 18);
+        hint.setFillColor(theme.textColor);
+        hint.setPosition(80.f, window.getSize().y - 40.f);
+        window.draw(hint);
 
         window.display();
     }
