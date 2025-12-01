@@ -313,8 +313,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                         state.enemyCount = enemyCount;
                         for (int i = 0; i < enemyCount; ++i)
                         {
-                            state.ex[i] = static_cast<int>(enemies[i].y / ts);
-                            state.ey[i] = static_cast<int>(enemies[i].x / ts);
+                            state.ex[i] = static_cast<int>(enemies[i].x / ts);
+                            state.ey[i] = static_cast<int>(enemies[i].y / ts);
                             state.evx[i] = enemies[i].dx;
                             state.evy[i] = enemies[i].dy;
                         }
