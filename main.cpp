@@ -15,6 +15,10 @@ using namespace std;
 extern PlayerDatabase g_playerDb;
 extern int g_currentPlayer;
 
+Music g_bgMusic;
+bool g_soundOn = true; // 1 = on, 0 = off
+int g_soundVolume = 5; // 0 to 10
+
 int main()
 {
     Theme theme;
@@ -39,6 +43,25 @@ int main()
 
     RenderWindow window(VideoMode(N * tileSize, M * tileSize), "Xonix Game");
     window.setFramerateLimit(60);
+
+
+
+    
+
+    if (!g_bgMusic.openFromFile("audio/GANGNAM_STYLE.wav"))
+    {
+        cout << "Could not load background music file\n";
+    }
+    else
+    {
+        g_bgMusic.setLoop(true);
+        g_bgMusic.setVolume(g_soundVolume * 10.0f); // 0 to 100
+        if (g_soundOn)
+            g_bgMusic.play();
+    }
+    
+
+
 
     AppState state = AppState::LANDING_MENU;
     bool running = true;
@@ -89,7 +112,7 @@ int main()
             runMultiplayerGame(window, theme);
             state = AppState::PLAYER_MENU;
         }
-         else if (state == AppState::SAVE_LOAD_GAME)    
+        else if (state == AppState::SAVE_LOAD_GAME)
         {
             state = showSaveLoadGameScreen(window, theme);
         }

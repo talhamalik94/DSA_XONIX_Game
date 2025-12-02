@@ -20,4 +20,14 @@ public:
     std::string peek() const;
 
     int size() const;
+
+     // NEW helper functions for save/load
+    void clear();
+
+    // Encode current stack into integer array [0..maxOut-1]
+    // outTop will be the last valid index in outArr, or -1 if empty
+    void toEncodedArray(int outArr[], int &outTop, int maxOut) const;
+
+    // Rebuild stack from encoded array and top index
+    void fromEncodedArray(const int inArr[], int inTop);
 };

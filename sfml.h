@@ -4,6 +4,8 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
+#include <SFML/Audio.hpp>  
+
 
 // Short aliases to keep code simple
 using RenderWindow = sf::RenderWindow;
@@ -21,3 +23,4 @@ using Clock        = sf::Clock;
 using Vec2         = sf::Vector2f;
 using FloatRect    = sf::FloatRect;
 using IntRect      = sf::IntRect;
+using Music        = sf::Music; 

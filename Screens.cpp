@@ -12,7 +12,7 @@ using namespace std;
 #include "FriendSystem.h"
 #include "MatchHistory.h"
 #include "ThemeInventory.h"
-#include "SaveGame.h"   
+#include "SaveGame.h"
 
 // const int MAX_THEMES = 8;
 
@@ -30,6 +30,10 @@ extern int g_currentPlayer;
 extern MatchmakingSystem g_matchmaking;
 extern MatchHistory g_matchHistory;
 extern int g_secondPlayerIndex;
+
+extern Music g_bgMusic;
+extern bool  g_soundOn;
+extern int   g_soundVolume;
 
 int g_selectedLevel = 0; // 0 = Easy, 1 = Medium, 2 = Hard
 
@@ -1443,8 +1447,6 @@ AppState showLevelSelectScreen(RenderWindow &window, const Theme &theme)
 AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
 {
     // Settings stored using simple static variables
-    static int soundOn = 1;
-    static int volume = 5;
     static int selected = 0;
 
     // New settings menu:
@@ -1502,13 +1504,25 @@ AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
                     if (selected == 3)
                     {
                         // Toggle sound on or off
-                        soundOn = !soundOn;
+                        g_soundOn = !g_soundOn;
+                        if (g_soundOn)
+                        {
+                            g_bgMusic.setVolume(g_soundVolume * 10.0f);
+                            g_bgMusic.play();
+                        }
+                        else
+                        {
+                            // Pause instead of stop so resume continues smoothly
+                            g_bgMusic.pause();
+                        }
                     }
                     if (selected == 4)
                     {
                         // Change volume 0 to 10
-                        volume = (volume + 1) % 11;
+                        g_soundVolume = (g_soundVolume + 1) % 11;
+                        g_bgMusic.setVolume(g_soundVolume * 10.0f);
                     }
+
                     if (selected == 5)
                     {
                         // Back to player menu
@@ -1531,9 +1545,9 @@ AppState showSettingsScreen(RenderWindow &window, const Theme &theme)
 
             // Show current values for Toggle Sound and Volume
             if (i == 3)
-                text += soundOn ? " : ON" : " : OFF";
+                text += g_soundOn ? " : ON" : " : OFF";
             if (i == 4)
-                text += " : " + std::to_string(volume);
+                text += " : " + std::to_string(g_soundVolume);
 
             Text t(text, theme.font, 26);
             t.setFillColor(i == selected ? theme.highlightColor : theme.textColor);
@@ -2052,6 +2066,49 @@ AppState showSaveLoadGameScreen(RenderWindow &window, const Theme &theme)
                     return AppState::PLAYER_MENU;
                 }
 
+                // New: L = load last save for this logged-in user
+                if (e.key.code == Keyboard::L)
+                {
+                    if (g_currentPlayer < 0 || g_currentPlayer >= g_playerDb.getSize())
+                    {
+                        status = "You must be logged in to load a game.";
+                    }
+                    else
+                    {
+                        const Player &p = g_playerDb.getPlayer(g_currentPlayer);
+
+                        SaveGameManager mgr;
+                        GameState state;
+                        std::string lastId;
+
+                        if (!mgr.loadLastSaveForPlayer(p.username, state, lastId))
+                        {
+                            status = "No previous save found for you.";
+                        }
+                        else
+                        {
+                            if (!state.isMultiplayer)
+                            {
+                                int score = runSinglePlayerGame(window, theme, &state);
+
+                                if (g_currentPlayer != -1 && score > 0)
+                                {
+                                    g_playerDb.updateScore(g_currentPlayer, score);
+                                }
+
+                                return AppState::PLAYER_MENU;
+                            }
+                            else
+                            {
+                                // For now we only resume single player.
+                                // Later we can hook this into multiplayer resume.
+                                status = "Multiplayer load will be added later.";
+                            }
+                        }
+                    }
+                }
+
+                // Enter = load by typed Save ID (existing logic)
                 if (e.key.code == Keyboard::Enter)
                 {
                     if (inputId.empty())
@@ -2085,7 +2142,6 @@ AppState showSaveLoadGameScreen(RenderWindow &window, const Theme &theme)
                                 }
                                 else
                                 {
-                                    // Single player resume for now
                                     if (!state.isMultiplayer)
                                     {
                                         int score = runSinglePlayerGame(window, theme, &state);
@@ -2094,14 +2150,13 @@ AppState showSaveLoadGameScreen(RenderWindow &window, const Theme &theme)
                                         {
                                             g_playerDb.updateScore(g_currentPlayer, score);
                                         }
+
+                                        return AppState::PLAYER_MENU;
                                     }
                                     else
                                     {
-                                        // Placeholder: later we will resume multiplayer
-                                        status = "Multiplayer load not implemented yet.";
+                                        status = "Multiplayer load will be added later.";
                                     }
-
-                                    return AppState::PLAYER_MENU;
                                 }
                             }
                         }
@@ -2135,7 +2190,7 @@ AppState showSaveLoadGameScreen(RenderWindow &window, const Theme &theme)
         statusText.setPosition(80.f, 280.f);
         window.draw(statusText);
 
-        Text hint("Enter: Load   ESC: Back", theme.font, 18);
+        Text hint("Enter: Load by ID   L: Load last game   ESC: Back", theme.font, 18);
         hint.setFillColor(theme.textColor);
         hint.setPosition(80.f, window.getSize().y - 40.f);
         window.draw(hint);

@@ -5,8 +5,9 @@
 #include <filesystem>
 #include <ctime>
 #include <sstream>
-
 using namespace std;
+namespace fs = std::filesystem;
+
 
 // ----------------- Timestamp helper -----------------
 
@@ -247,6 +248,57 @@ bool SaveGameManager::loadGameState(const std::string& saveId, GameState& outSta
 
     outState.tilesHead = head;
     return true;
+}
+
+bool SaveGameManager::loadLastSaveForPlayer(const std::string& playerId,
+                                            GameState& outState,
+                                            std::string& outSaveId) const
+{
+    fs::path dir("saves");
+    if (!fs::exists(dir) || !fs::is_directory(dir))
+        return false;
+
+    std::string bestId;
+    std::string bestTimestamp;
+
+    for (const auto &entry : fs::directory_iterator(dir))
+    {
+        if (!entry.is_regular_file())
+            continue;
+
+        ifstream in(entry.path());
+        if (!in)
+            continue;
+
+        std::string saveIdLine;
+        std::string playerLine;
+        std::string timestampLine;
+
+        if (!std::getline(in, saveIdLine)) continue;
+        if (!std::getline(in, playerLine)) continue;
+        if (!std::getline(in, timestampLine)) continue;
+
+        // First lines in your file format:
+        // saveId
+        // playerId
+        // timestamp
+        if (playerLine != playerId)
+            continue;
+
+        // Compare timestamps lexicographically; format "YYYY-MM-DD HH:MM:SS"
+        // makes this safe.
+        if (bestId.empty() || timestampLine > bestTimestamp)
+        {
+            bestId        = saveIdLine;
+            bestTimestamp = timestampLine;
+        }
+    }
+
+    if (bestId.empty())
+        return false;
+
+    outSaveId = bestId;
+    return loadGameState(bestId, outState);
 }
 
 // ----------------- Grid helpers -----------------

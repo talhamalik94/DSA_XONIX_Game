@@ -38,7 +38,6 @@ static string makeSaveId(const string &playerId)
     return playerId + "_" + stamp;
 }
 
-
 // Helper to record any match (single or multi) for a player
 static void recordMatchForPlayer(int playerIndex,
                                  const string &opponentName,
@@ -193,12 +192,95 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     Clock clock;
     float timer = 0;
+    // -------------------------------------------
+    //     HELPER: SAVE CURRENT SINGLE GAME
+    // -------------------------------------------
+    auto saveCurrentGame = [&]()
+    {
+        // Only save if someone is logged in
+        extern PlayerDatabase g_playerDb;
+        extern int g_currentPlayer;
+
+        if (g_currentPlayer < 0 || g_currentPlayer >= g_playerDb.getSize())
+        {
+            cout << "Cannot save: no player logged in.\n";
+            return;
+        }
+
+        const Player &p = g_playerDb.getPlayer(g_currentPlayer);
+
+        GameState state;
+        state.isMultiplayer = false;
+        state.playerId = p.username;
+        state.timestamp = getCurrentTimestamp();
+        state.level = g_selectedLevel;
+
+        state.playerX = playerX;
+        state.playerY = playerY;
+
+        // Convert direction into 0..3
+        if (dirX == 1 && dirY == 0)
+            state.dir = 0;
+        else if (dirX == 0 && dirY == 1)
+            state.dir = 1;
+        else if (dirX == -1 && dirY == 0)
+            state.dir = 2;
+        else if (dirX == 0 && dirY == -1)
+            state.dir = 3;
+        else
+            state.dir = 0;
+
+        state.isDrawing = false; // your runtime does not track this explicitly
+        state.score = finalScore;
+        state.lives = 3; // simple default
+        state.totalLandTiles = 0;
+        state.targetLandTiles = 0;
+        state.currentStrokeTiles = 0;
+
+        // Enemies
+        state.enemyCount = enemyCount;
+        for (int i = 0; i < enemyCount; ++i)
+        {
+            state.ex[i] = static_cast<int>(enemies[i].y / ts);
+            state.ey[i] = static_cast<int>(enemies[i].x / ts);
+            state.evx[i] = enemies[i].dx;
+            state.evy[i] = enemies[i].dy;
+        }
+
+        // Power-up stack (we rely on the logic you already wired
+        // in SaveGame.cpp to read/write powerUpTop and powerUpStack[])
+        state.powerUpTop = 0;
+        for (int i = 0; i < 10; ++i)
+            state.powerUpStack[i] = 0;
+
+        // Let SaveGame.cpp rebuild the linked list of tiles for us
+        buildGameStateFromGrid(state, grid);
+
+        // Build unique ID and save
+        state.saveId = makeSaveId(p.username);
+
+        SaveGameManager mgr;
+        if (mgr.saveGameState(state))
+        {
+            cout << "Game saved with ID: " << state.saveId << "\n";
+        }
+        else
+        {
+            cout << "Failed to save game.\n";
+        }
+    };
 
     // -------------------------------------------
     //           POWER UP STACK
     // -------------------------------------------
     PowerUpStack powerUps;
     int nextPowerUpAt = 50; // first power up at 50, then every +30
+
+    // Restore powerups if we loaded from a save
+    if (loadedState != nullptr && !loadedState->isMultiplayer)
+    {
+        powerUps.fromEncodedArray(loadedState->powerUpStack, loadedState->powerUpTop);
+    }
 
     // -------------------------------------------
     //      MULTIPLIER SYSTEM VARIABLES
@@ -268,74 +350,98 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                 // --------- SAVE GAME (S key) ----------
                 if (event.key.code == Keyboard::S)
                 {
-                    // Only save if someone is logged in
-                    extern PlayerDatabase g_playerDb;
-                    extern int g_currentPlayer;
+                    saveCurrentGame();
+                }
 
-                    if (g_currentPlayer < 0 ||
-                        g_currentPlayer >= g_playerDb.getSize())
+                // Pause menu (P key)
+                if (event.key.code == Keyboard::P)
+                {
+                    // Simple pause menu UI
+                    bool paused = true;
+                    int selected = 0;
+                    const int optionCount = 3;
+                    const char *options[optionCount] = {
+                        "Resume",
+                        "Save Game",
+                        "Quit to Menu"};
+
+                    while (paused && window.isOpen())
                     {
-                        cout << "Cannot save: no player logged in.\n";
+                        Event pe;
+                        while (window.pollEvent(pe))
+                        {
+                            if (pe.type == Event::Closed)
+                            {
+                                window.close();
+                                exitGame = true;
+                                paused = false;
+                            }
+                            if (pe.type == Event::KeyPressed)
+                            {
+                                if (pe.key.code == Keyboard::Up)
+                                    selected = (selected - 1 + optionCount) % optionCount;
+                                else if (pe.key.code == Keyboard::Down)
+                                    selected = (selected + 1) % optionCount;
+                                else if (pe.key.code == Keyboard::Escape)
+                                    paused = false;
+                                else if (pe.key.code == Keyboard::Enter)
+                                {
+                                    if (selected == 0) // Resume
+                                    {
+                                        paused = false;
+                                    }
+                                    else if (selected == 1) // Save
+                                    {
+                                        saveCurrentGame();
+                                    }
+                                    else if (selected == 2) // Quit to menu
+                                    {
+                                        exitGame = true;
+                                        paused = false;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Draw current game as frozen background
+                        window.clear();
+                        drawGameBackground(window, theme);
+
+                        // TODO: reuse your existing drawing code here if you want
+                        // For now: just a dark overlay plus menu text
+
+                        Rectangle overlay;
+                        overlay.setSize(Vec2(
+                            static_cast<float>(window.getSize().x),
+                            static_cast<float>(window.getSize().y)));
+                        overlay.setFillColor(Color(0, 0, 0, 150));
+                        window.draw(overlay);
+
+                        Text title("Paused", theme.titleFont, 36);
+                        title.setFillColor(theme.accentColor);
+                        FloatRect tb = title.getLocalBounds();
+                        title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
+                        title.setPosition(window.getSize().x / 2.f, 120.f);
+                        window.draw(title);
+
+                        for (int i = 0; i < optionCount; ++i)
+                        {
+                            Text t(options[i], theme.font, 26);
+                            t.setFillColor(i == selected ? theme.highlightColor : theme.textColor);
+                            t.setPosition(
+                                window.getSize().x / 2.f - 120.f,
+                                200.f + i * 40.f);
+                            window.draw(t);
+                        }
+
+                        window.display();
+
+                        if (exitGame)
+                            break;
                     }
-                    else
-                    {
-                        const Player &p = g_playerDb.getPlayer(g_currentPlayer);
 
-                        GameState state;
-                        state.isMultiplayer = false;
-                        state.playerId = p.username;
-                        state.timestamp = getCurrentTimestamp();
-                        state.level = g_selectedLevel;
-                        state.playerX = playerX;
-                        state.playerY = playerY;
-
-                        // Convert direction into 0..3
-                        if (dirX == 1 && dirY == 0)
-                            state.dir = 0;
-                        else if (dirX == 0 && dirY == 1)
-                            state.dir = 1;
-                        else if (dirX == -1 && dirY == 0)
-                            state.dir = 2;
-                        else if (dirX == 0 && dirY == -1)
-                            state.dir = 3;
-                        else
-                            state.dir = 0;
-
-                        state.isDrawing = false; // your game logic does not track this, safe default
-                        state.score = finalScore;
-                        state.lives = 3;           // simple default
-                        state.totalLandTiles = 0;  // optional
-                        state.targetLandTiles = 0; // optional
-
-                        state.currentStrokeTiles = 0;
-
-                        // Enemy info
-                        state.enemyCount = enemyCount;
-                        for (int i = 0; i < enemyCount; ++i)
-                        {
-                            state.ex[i] = static_cast<int>(enemies[i].x / ts);
-                            state.ey[i] = static_cast<int>(enemies[i].y / ts);
-                            state.evx[i] = enemies[i].dx;
-                            state.evy[i] = enemies[i].dy;
-                        }
-
-                        // Power up stack is not directly stored here.
-                        // Linked list of tiles:
-                        buildGameStateFromGrid(state, grid);
-
-                        // Build a unique ID and save
-                        state.saveId = makeSaveId(p.username);
-
-                        SaveGameManager mgr;
-                        if (mgr.saveGameState(state))
-                        {
-                            cout << "Game saved with ID: " << state.saveId << "\n";
-                        }
-                        else
-                        {
-                            cout << "Failed to save game.\n";
-                        }
-                    }
+                    if (exitGame)
+                        break; // break main single-player loop
                 }
             }
         }
