@@ -1,7 +1,6 @@
 // Matchmaking.cpp
 #include "MatchMaking.h"
 
-// -------------- MatchPriorityQueue (max heap) ------------------
 
 MatchPriorityQueue::MatchPriorityQueue()
 {

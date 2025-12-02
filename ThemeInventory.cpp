@@ -171,9 +171,7 @@ void ThemeInventory::collectByCategory(int category,
     inorderCollect(root, category, outArray, outCount, maxCount);
 }
 
-// ------ initialization ------
 
-// You can change file names to whatever images you have in images/
 void initDefaultThemes()
 {
     // Main menu themes (category = 0)
@@ -184,7 +182,7 @@ void initDefaultThemes()
     t.name = "Stony Peak";
     t.description = "Classic Masterpiece";
     t.menuImagePath = "images/classic.jpg";
-    t.gameImagePath = "";    // not used for menu theme
+    t.gameImagePath = "";    
     g_themeInventory.insert(t);
 
     t.id = 102;

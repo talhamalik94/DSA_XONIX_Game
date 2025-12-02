@@ -142,7 +142,6 @@ bool FriendSystem::removeRequestNode(Player& toPlayer, int fromIndex)
     return false;
 }
 
-// persistence of friends only: friends.txt
 
 void FriendSystem::saveFriendsToFile() const
 {
@@ -192,7 +191,6 @@ void FriendSystem::loadFriendsFromFile()
     }
 }
 
-// Main operations
 
 bool FriendSystem::sendFriendRequest(int fromIndex, const string& toUsername, string& message)
 {

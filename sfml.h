@@ -7,7 +7,6 @@
 #include <SFML/Audio.hpp>  
 
 
-// Short aliases to keep code simple
 using RenderWindow = sf::RenderWindow;
 using VideoMode    = sf::VideoMode;
 using Event        = sf::Event;

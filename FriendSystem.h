@@ -5,7 +5,6 @@
 
 using std::string;
 
-// Hash table node for username -> index mapping
 struct HashNode
 {
     string username;
@@ -16,10 +15,10 @@ struct HashNode
 class FriendSystem
 {
 private:
-    static const int TABLE_SIZE = 101;   // simple prime size
+    static const int TABLE_SIZE = 101;   
     HashNode* table[TABLE_SIZE];
 
-    PlayerDatabase* db;                 // pointer to main database
+    PlayerDatabase* db;                 
 
     int hash(const string& key) const;
 

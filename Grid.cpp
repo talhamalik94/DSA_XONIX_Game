@@ -5,9 +5,7 @@
 int grid[M][N];
 int trailOwner[M][N];
 
-// ---------------------------------------------------
-// Initialize the game grid to default
-// ---------------------------------------------------
+// Initialize the gamegrid
 void initGrid()
 {
     for (int r = 0; r < M; r++)
@@ -33,9 +31,7 @@ void initGrid()
     }
 }
 
-// ---------------------------------------------------
 // Copy entire grid from src -> dest
-// ---------------------------------------------------
 void copyGrid(int src[M][N], int dest[M][N])
 {
     for (int r = 0; r < M; r++)
@@ -43,9 +39,7 @@ void copyGrid(int src[M][N], int dest[M][N])
             dest[r][c] = src[r][c];
 }
 
-// ---------------------------------------------------
 // Replace global grid with a restored one
-// ---------------------------------------------------
 void applyGrid(int restored[M][N])
 {
     for (int r = 0; r < M; r++)
@@ -53,9 +47,7 @@ void applyGrid(int restored[M][N])
             grid[r][c] = restored[r][c];
 }
 
-// ---------------------------------------------------
 // Serialize current grid to array
-// ---------------------------------------------------
 void serializeGrid(int out[M][N])
 {
     for (int r = 0; r < M; r++)

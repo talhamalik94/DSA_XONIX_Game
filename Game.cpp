@@ -1,4 +1,3 @@
-// Game.cpp
 #include <iostream>
 #include <ctime>
 #include <cstdlib>
@@ -16,10 +15,8 @@ using namespace std;
 #include "MatchHistory.h"
 #include "SaveGame.h"
 
-// Main grid definition
 int grid[M][N] = {0};
 
-// Level selection from Screens.cpp
 extern int g_selectedLevel;
 
 // When matchmaking is used, this holds the opponent player index
@@ -28,8 +25,7 @@ int g_secondPlayerIndex = -1;
 // Helper to generate a simple unique save ID per player
 static string makeSaveId(const string &playerId)
 {
-    // Example: malik_2025_12_01_17_45_32
-    string stamp = getCurrentTimestamp(); // "YYYY-MM-DD HH:MM:SS"
+    string stamp = getCurrentTimestamp();
     for (char &c : stamp)
     {
         if (c == ' ' || c == ':' || c == '-')
@@ -39,10 +35,7 @@ static string makeSaveId(const string &playerId)
 }
 
 // Helper to record any match (single or multi) for a player
-static void recordMatchForPlayer(int playerIndex,
-                                 const string &opponentName,
-                                 const string &result,
-                                 int score)
+static void recordMatchForPlayer(int playerIndex, const string &opponentName, const string &result, int score)
 {
     if (playerIndex < 0)
         return;
@@ -85,9 +78,7 @@ static void floodFill(int gy, int gx)
     floodFill(gy, gx + 1);
 }
 
-// -------------------------------------------
-//              MAIN GAME FUNCTION
-// -------------------------------------------
+
 int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameState *loadedState)
 {
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -106,9 +97,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     Starfield starfield(N * ts, M * ts);
 
-    // -------------------------------------------
-    //           DIFFICULTY SETTINGS
-    // -------------------------------------------
     float delay = 0.07f; // constant player speed
     int enemyCount;
 
@@ -121,9 +109,7 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     Enemy enemies[10]; // use only enemyCount
 
-    // -------------------------------------------
-    //         BUILD INITIAL PLAYFIELD
-    // -------------------------------------------
+    
     for (int i = 0; i < M; i++)
         for (int j = 0; j < N; j++)
             grid[i][j] = (i == 0 || j == 0 || i == M - 1 || j == N - 1) ? 1 : 0;
@@ -138,9 +124,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     int finalScore = 0;
 
-    // -------------------------------------------
-    //       APPLY LOADED STATE (if any)
-    // -------------------------------------------
+    
+
     if (loadedState != nullptr && !loadedState->isMultiplayer)
     {
         // Restore tiles using the linked list
@@ -150,7 +135,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         playerX = loadedState->playerX;
         playerY = loadedState->playerY;
 
-        // Map direction 0/1/2/3 to dirX/dirY
         switch (loadedState->dir)
         {
         case 0:
@@ -192,9 +176,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     Clock clock;
     float timer = 0;
-    // -------------------------------------------
-    //     HELPER: SAVE CURRENT SINGLE GAME
-    // -------------------------------------------
+    
+
     auto saveCurrentGame = [&]()
     {
         // Only save if someone is logged in
@@ -218,7 +201,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         state.playerX = playerX;
         state.playerY = playerY;
 
-        // Convert direction into 0..3
         if (dirX == 1 && dirY == 0)
             state.dir = 0;
         else if (dirX == 0 && dirY == 1)
@@ -230,9 +212,9 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         else
             state.dir = 0;
 
-        state.isDrawing = false; // your runtime does not track this explicitly
+        state.isDrawing = false;
         state.score = finalScore;
-        state.lives = 3; // simple default
+        state.lives = 3;
         state.totalLandTiles = 0;
         state.targetLandTiles = 0;
         state.currentStrokeTiles = 0;
@@ -247,13 +229,10 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             state.evy[i] = enemies[i].dy;
         }
 
-        // Power-up stack (we rely on the logic you already wired
-        // in SaveGame.cpp to read/write powerUpTop and powerUpStack[])
         state.powerUpTop = 0;
         for (int i = 0; i < 10; ++i)
             state.powerUpStack[i] = 0;
 
-        // Let SaveGame.cpp rebuild the linked list of tiles for us
         buildGameStateFromGrid(state, grid);
 
         // Build unique ID and save
@@ -270,28 +249,21 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         }
     };
 
-    // -------------------------------------------
-    //           POWER UP STACK
-    // -------------------------------------------
+    
     PowerUpStack powerUps;
-    int nextPowerUpAt = 50; // first power up at 50, then every +30
+    int nextPowerUpAt = 50;
 
-    // Restore powerups if we loaded from a save
     if (loadedState != nullptr && !loadedState->isMultiplayer)
     {
         powerUps.fromEncodedArray(loadedState->powerUpStack, loadedState->powerUpTop);
     }
 
-    // -------------------------------------------
-    //      MULTIPLIER SYSTEM VARIABLES
-    // -------------------------------------------
+    
     int tilesCapturedThisStroke = 0;
     int captureStreak = 0;
     int multiplier = 1;
 
-    // -------------------------------------------
-    //           SCORE TEXT
-    // -------------------------------------------
+    
     Text scoreText;
     scoreText.setFont(theme.font);
     scoreText.setCharacterSize(24);
@@ -314,22 +286,20 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         clock.restart();
         timer += dt;
 
-        // -------------------------------------------
-        //               EVENT HANDLING
-        // -------------------------------------------
+        
         Event event;
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed)
             {
-                // Close window and leave game loop
+                
                 window.close();
                 exitGame = true;
             }
 
             if (event.type == Event::KeyPressed)
             {
-                // Exit game with Esc or Enter
+                
                 if (event.key.code == Keyboard::Escape ||
                     event.key.code == Keyboard::Enter)
                 {
@@ -347,13 +317,13 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                     }
                 }
 
-                // --------- SAVE GAME (S key) ----------
+                
                 if (event.key.code == Keyboard::S)
                 {
                     saveCurrentGame();
                 }
 
-                // Pause menu (P key)
+                
                 if (event.key.code == Keyboard::P)
                 {
                     // Simple pause menu UI
@@ -403,12 +373,9 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                             }
                         }
 
-                        // Draw current game as frozen background
+                        
                         window.clear();
                         drawGameBackground(window, theme);
-
-                        // TODO: reuse your existing drawing code here if you want
-                        // For now: just a dark overlay plus menu text
 
                         Rectangle overlay;
                         overlay.setSize(Vec2(
@@ -441,7 +408,7 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                     }
 
                     if (exitGame)
-                        break; // break main single-player loop
+                        break;
                 }
             }
         }
@@ -449,12 +416,9 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         if (exitGame)
             break;
 
-        // -------------------------------------------
-        //          MOVEMENT INPUT
-        // -------------------------------------------
         bool anyKey = false;
 
-        bool onLand = (grid[playerY][playerX] == 1); // captured land / border
+        bool onLand = (grid[playerY][playerX] == 1);
 
         if (Keyboard::isKeyPressed(Keyboard::Left))
         {
@@ -483,21 +447,15 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
         if (onLand)
         {
-            // On land: if no key held, stop player
+            // if no key press then stop player
             if (!anyKey)
             {
                 dirX = 0;
                 dirY = 0;
             }
         }
-        else
-        {
-            // In water / trail: player keeps going until direction is changed
-        }
 
-        // -------------------------------------------
-        //            ENEMY FREEZE TIMER
-        // -------------------------------------------
+        
         if (enemiesFrozen)
         {
             freezeTimer -= dt;
@@ -507,14 +465,9 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             }
         }
 
-        // -------------------------------------------
-        //             STARFIELD UPDATE
-        // -------------------------------------------
+        
         starfield.update(dt);
 
-        // -------------------------------------------
-        //             MOVE PLAYER
-        // -------------------------------------------
         if (gameRunning && timer > delay && (dirX != 0 || dirY != 0))
         {
             playerX += dirX;
@@ -541,18 +494,13 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             timer = 0.f;
         }
 
-        // -------------------------------------------
-        //           MOVE ENEMIES
-        // -------------------------------------------
         if (!enemiesFrozen)
         {
             for (int i = 0; i < enemyCount; i++)
                 enemies[i].move();
         }
+        
 
-        // -------------------------------------------
-        //       PLAYER RETURNS TO LAND = CAPTURE
-        // -------------------------------------------
         if (gameRunning && grid[playerY][playerX] == 1)
         {
             if (tilesCapturedThisStroke > 0)
@@ -569,7 +517,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                         multiplier = 1;
                 }
 
-                // Flood fill using enemies as origins
                 for (int i = 0; i < enemyCount; i++)
                 {
                     int gy = enemies[i].y / ts;
@@ -612,9 +559,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                         grid[i][j] = 1;
         }
 
-        // -------------------------------------------
-        //        ENEMY TOUCHES TRAIL
-        // -------------------------------------------
+        
+        //enemy touches trail
         for (int i = 0; i < enemyCount; i++)
         {
             int gy = enemies[i].y / ts;
@@ -623,9 +569,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                 gameRunning = false;
         }
 
-        // -------------------------------------------
-        //                DRAWING
-        // -------------------------------------------
         drawGameBackground(window, theme);
 
         starfield.draw(window, theme.starColor);
@@ -711,9 +654,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         window.display();
     }
 
-    // -------------------------------------------
-    //       RECORD MATCH INTO HISTORY
-    // -------------------------------------------
+    
+    //save match
     extern PlayerDatabase g_playerDb;
     extern int g_currentPlayer;
 
@@ -724,11 +666,9 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         MatchRecord r;
         r.opponent = "AI";
 
-        // Simple rule: any positive score = WIN, 0 / negative = LOSS
         r.result = (finalScore > 0) ? "WIN" : "LOSS";
         r.score = finalScore;
 
-        // Pretty timestamp like "2025-11-29 13:45"
         time_t now = time(nullptr);
         tm *lt = localtime(&now);
         char buf[20];
@@ -744,15 +684,12 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
     return finalScore;
 }
 
-// ----------------- MULTIPLAYER (TURN BY TURN) -----------------
-int runMultiplayerGame(RenderWindow &window,
-                       const Theme &theme,
-                       const GameState *loadedState)
+
+
+int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState *loadedState)
 {
-    // We reuse the global grid[M][N]
     extern int grid[M][N];
 
-    // Difficulty: same rules as single-player (enemy count from level)
     extern int g_selectedLevel;
 
     int enemyCount;
@@ -778,7 +715,6 @@ int runMultiplayerGame(RenderWindow &window,
 
     string p2Name = "P2";
 
-    // If matchmaking provided a second player, show their name as P2
     if (g_secondPlayerIndex >= 0)
     {
         const Player &opp = g_playerDb.getPlayer(g_secondPlayerIndex);
@@ -855,7 +791,7 @@ int runMultiplayerGame(RenderWindow &window,
     if (!showIntro("Multiplayer Mode"))
         return 0;
 
-    // ================== INITIALIZE BOARD ==================
+    //create board
     for (int i = 0; i < M; ++i)
     {
         for (int j = 0; j < N; ++j)
@@ -867,13 +803,13 @@ int runMultiplayerGame(RenderWindow &window,
         }
     }
 
-    // trailOwner: 0 = none, 1 = P1, 2 = P2
     int trailOwner[M][N];
     for (int i = 0; i < M; ++i)
         for (int j = 0; j < N; ++j)
             trailOwner[i][j] = 0;
 
-    // ================== ENEMIES ==================
+            
+
     Enemy enemies[10];
     Starfield starfield(N * ts, M * ts);
     Texture tilesTex, enemyTex, gameOverTex;
@@ -888,7 +824,7 @@ int runMultiplayerGame(RenderWindow &window,
     Sprite gameOverSprite(gameOverTex);
     gameOverSprite.setPosition(100.f, 100.f);
 
-    // ================== PLAYER STATE ==================
+    
     struct PlayerState
     {
         int x, y;
@@ -914,12 +850,12 @@ int runMultiplayerGame(RenderWindow &window,
 
     int p1NextPU = 50, p2NextPU = 50;
 
-    // ================== FREEZE LOGIC ==================
+    
     bool freezeActive = false;
-    int frozenBy = 0; // 1 = P1, 2 = P2
+    int frozenBy = 0;
     float freezeTimer = 0.f;
 
-    // Shared match timer
+    
     float matchTime = 0.f;
 
     // HUD texts
@@ -949,33 +885,30 @@ int runMultiplayerGame(RenderWindow &window,
     float tick = 0.f;
     const float delay = 0.07f;
 
-    // helper to check "constructing" state
+    
     auto isConstructing = [&](const PlayerState &p) -> bool
     {
         int gy = p.y;
         int gx = p.x;
         if (gy < 0 || gy >= M || gx < 0 || gx >= N)
             return false;
-        // in water or on its own trail
         return (grid[gy][gx] == 0 || (grid[gy][gx] == 2));
     };
 
-    // floodFill helper (uses global grid)
+    
     auto ff = [&](int sy, int sx)
     {
         floodFill(sy, sx);
     };
 
-    // area capture for a given player
+    
     auto captureAreaFor = [&](int playerId, PlayerState &player)
     {
-        // Snapshot old grid
         int oldGrid[M][N];
         for (int i = 0; i < M; ++i)
             for (int j = 0; j < N; ++j)
                 oldGrid[i][j] = grid[i][j];
 
-        // Flood-fill from enemies
         for (int i = 0; i < enemyCount; ++i)
         {
             int gy = enemies[i].y / ts;
@@ -991,11 +924,10 @@ int runMultiplayerGame(RenderWindow &window,
             {
                 if (grid[i][j] == -1)
                 {
-                    grid[i][j] = 0; // reachable water stays water
+                    grid[i][j] = 0;
                 }
                 else
                 {
-                    // 0 = enclosed water, 1 = land, 2 = trails
                     if (grid[i][j] == 0)
                     {
                         grid[i][j] = 1;
@@ -1006,7 +938,7 @@ int runMultiplayerGame(RenderWindow &window,
             }
         }
 
-        // convert all trails to land (both players)
+        // convert trails to land
         for (int i = 0; i < M; ++i)
         {
             for (int j = 0; j < N; ++j)
@@ -1041,7 +973,6 @@ int runMultiplayerGame(RenderWindow &window,
             }
         }
 
-        // ------------------ events ------------------
         Event event;
         while (window.pollEvent(event))
         {
@@ -1057,7 +988,7 @@ int runMultiplayerGame(RenderWindow &window,
                     running = false;
                 }
 
-                // Power-up keys
+                //power ups
                 if (event.key.code == Keyboard::Space && p1.alive)
                 {
                     if (!p1.powerUps.isEmpty())
@@ -1090,11 +1021,10 @@ int runMultiplayerGame(RenderWindow &window,
         if (!running)
             break;
 
-        // ------------------ INPUT: DIRECTIONS ------------------
         bool p1CanMove = (!freezeActive || frozenBy == 1);
         bool p2CanMove = (!freezeActive || frozenBy == 2);
 
-        // P1: arrows
+        //player 1 move with arrow keys
         if (p1.alive && p1CanMove)
         {
             bool any = false;
@@ -1131,7 +1061,7 @@ int runMultiplayerGame(RenderWindow &window,
             }
         }
 
-        // P2: Q/A/X/G  (Q-Up, A-Left, X-Down, G-Right)
+        //player 2 with Q A X G
         if (p2.alive && p2CanMove)
         {
             bool any = false;
@@ -1168,7 +1098,7 @@ int runMultiplayerGame(RenderWindow &window,
             }
         }
 
-        // ------------------ MOVE PLAYERS ------------------
+        
         if (tick > delay)
         {
             auto stepPlayer = [&](int id, PlayerState &p)
@@ -1191,7 +1121,6 @@ int runMultiplayerGame(RenderWindow &window,
                 if (ny > M - 1)
                     ny = M - 1;
 
-                // Start drawing if leaving land into water
                 if (grid[p.y][p.x] == 1 && grid[ny][nx] == 0)
                     p.isDrawing = true;
 
@@ -1204,13 +1133,11 @@ int runMultiplayerGame(RenderWindow &window,
                     trailOwner[p.y][p.x] = id;
                 }
 
-                // If returns to land while drawing -> capture
                 if (p.isDrawing && grid[p.y][p.x] == 1)
                 {
                     captureAreaFor(id, p);
                     p.isDrawing = false;
 
-                    // Power-up when score crosses thresholds
                     if (id == 1 && p.score >= p1NextPU)
                     {
                         p.powerUps.push("FREEZE");
@@ -1230,16 +1157,13 @@ int runMultiplayerGame(RenderWindow &window,
             tick = 0.f;
         }
 
-        // ------------------ MOVE ENEMIES ------------------
         if (!freezeActive)
         {
             for (int i = 0; i < enemyCount; ++i)
                 enemies[i].move();
         }
 
-        // ------------------ COLLISIONS ------------------
 
-        // Enemy vs players and trails
         for (int i = 0; i < enemyCount; ++i)
         {
             int gy = enemies[i].y / ts;
@@ -1247,11 +1171,11 @@ int runMultiplayerGame(RenderWindow &window,
             if (gy < 0 || gy >= M || gx < 0 || gx >= N)
                 continue;
 
-            // Enemy hits P1 trail
+            // Enemy hits Player 1 trail
             if (grid[gy][gx] == 2 && trailOwner[gy][gx] == 1 && p1.alive)
                 p1.alive = false;
 
-            // Enemy hits P2 trail
+            // Enemy hits Player 2 trail
             if (grid[gy][gx] == 2 && trailOwner[gy][gx] == 2 && p2.alive)
                 p2.alive = false;
 
@@ -1274,7 +1198,7 @@ int runMultiplayerGame(RenderWindow &window,
                 p1.alive = p2.alive = false;
             }
 
-            // One constructing, other not, same cell
+            
             else if (p1Cons && !p2Cons && p1.x == p2.x && p1.y == p2.y)
             {
                 p1.alive = false;
@@ -1285,7 +1209,7 @@ int runMultiplayerGame(RenderWindow &window,
             }
         }
 
-        // Touching other player's trail
+        // touching other player trail
         if (p1.alive)
         {
             int gy = p1.y, gx = p1.x;
@@ -1314,7 +1238,7 @@ int runMultiplayerGame(RenderWindow &window,
         if (!p1.alive && !p2.alive)
             running = false;
 
-        // ------------------ DRAW ------------------
+            
         starfield.update(dt);
         drawGameBackground(window, theme);
 
@@ -1351,7 +1275,7 @@ int runMultiplayerGame(RenderWindow &window,
             }
         }
 
-        // Draw players as tiles (same sprite, different colors)
+        
         tile.setTextureRect(IntRect(36, 0, ts, ts));
 
         if (p1.alive)
@@ -1376,23 +1300,16 @@ int runMultiplayerGame(RenderWindow &window,
             window.draw(enemySprite);
         }
 
-        // HUD bar across top
-        // HUD bar across top
+        
         Rectangle hudRect;
         hudRect.setSize(Vec2(static_cast<float>(N * ts), 60.f));
         hudRect.setPosition(0.f, 0.f);
         hudRect.setFillColor(theme.hudBackgroundColor);
         window.draw(hudRect);
 
-        p1Text.setString("P1 " + p1Name +
-                         " | Score: " + to_string(p1.score) +
-                         " | PU: " + to_string(p1.powerUps.size()) +
-                         (p1.alive ? "" : " [DEAD]"));
+        p1Text.setString("P1 " + p1Name + " | Score: " + to_string(p1.score) + " | PU: " + to_string(p1.powerUps.size()) + (p1.alive ? "" : " [DEAD]"));
 
-        p2Text.setString("P2 " + p2Name +
-                         " | Score: " + to_string(p2.score) +
-                         " | PU: " + to_string(p2.powerUps.size()) +
-                         (p2.alive ? "" : " [DEAD]"));
+        p2Text.setString("P2 " + p2Name + " | Score: " + to_string(p2.score) + " | PU: " + to_string(p2.powerUps.size()) + (p2.alive ? "" : " [DEAD]"));
 
         int sec = static_cast<int>(matchTime);
         int mm = sec / 60;
@@ -1421,7 +1338,6 @@ int runMultiplayerGame(RenderWindow &window,
         window.display();
     }
 
-    // ============= RESULT SCREEN =============
     string result;
     if (p1.score > p2.score)
         result = p1Name + " wins!";
@@ -1430,8 +1346,6 @@ int runMultiplayerGame(RenderWindow &window,
     else
         result = "Draw!";
 
-    // Record match for logged in players
-    // P1 is the current logged in user if p1Index >= 0
     if (p1Index >= 0)
     {
         string r1;
@@ -1445,7 +1359,7 @@ int runMultiplayerGame(RenderWindow &window,
         recordMatchForPlayer(p1Index, p2Name, r1, p1.score);
     }
 
-    // If matchmaking gave us a real second player, record for them too
+    
     if (g_secondPlayerIndex >= 0)
     {
         string r2;
@@ -1459,7 +1373,6 @@ int runMultiplayerGame(RenderWindow &window,
         recordMatchForPlayer(g_secondPlayerIndex, p1Name, r2, p2.score);
     }
 
-    // Reset after use so local two player mode is not affected later
     g_secondPlayerIndex = -1;
 
     while (window.isOpen())
