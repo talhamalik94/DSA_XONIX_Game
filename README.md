@@ -78,9 +78,12 @@ Capture area by drawing lines and enclosing empty space. Avoid enemies while dra
 
 Example:
 
-![Main Menu](images/screenshots/main_menu.png)
-![Gameplay](images/screenshots/gameplay.png)
-![Theme Inventory](images/screenshots/theme_inventory.png)
+![Gameplay](images/screenshots/login.png)
+![Main Menu](images/screenshots/main.png)
+![Theme Inventory](images/screenshots/theme_main.png)
+![Theme Inventory](images/screenshots/theme_gamepg.png)
+![Theme Inventory](images/screenshots/theme_mainpg.png)
+![Theme Inventory](images/screenshots/leaderboard.png)
 
 5. Technical Details
 Language
