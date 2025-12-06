@@ -1,4 +1,3 @@
-// SaveGame.cpp
 #include "SaveGame.h"
 
 #include <fstream>
@@ -9,7 +8,6 @@ using namespace std;
 namespace fs = std::filesystem;
 
 
-// ----------------- Timestamp helper -----------------
 
 std::string getCurrentTimestamp()
 {
@@ -20,7 +18,6 @@ std::string getCurrentTimestamp()
     return std::string(buf);
 }
 
-// ----------------- GameState -----------------
 
 GameState::GameState()
 {
@@ -81,11 +78,9 @@ void GameState::clear()
     tilesHead = nullptr;
 }
 
-// ----------------- SaveGameManager -----------------
 
 SaveGameManager::SaveGameManager()
 {
-    // Ensure "saves" directory exists
     std::filesystem::create_directories("saves");
 }
 
@@ -114,7 +109,7 @@ bool SaveGameManager::saveGameState(const GameState& state) const
         << state.totalLandTiles << " " << state.targetLandTiles << " "
         << state.currentStrokeTiles << "\n";
 
-    // 3) Second player info (multiplayer safe-state)
+    // 3) Second player info 
     out << state.p2X << " " << state.p2Y << " "
         << state.p2Dir << " " << state.p2Score << " "
         << state.p2Lives << " " << state.activePlayer << "\n";
@@ -250,9 +245,7 @@ bool SaveGameManager::loadGameState(const std::string& saveId, GameState& outSta
     return true;
 }
 
-bool SaveGameManager::loadLastSaveForPlayer(const std::string& playerId,
-                                            GameState& outState,
-                                            std::string& outSaveId) const
+bool SaveGameManager::loadLastSaveForPlayer(const std::string& playerId, GameState& outState, std::string& outSaveId) const
 {
     fs::path dir("saves");
     if (!fs::exists(dir) || !fs::is_directory(dir))
@@ -301,7 +294,6 @@ bool SaveGameManager::loadLastSaveForPlayer(const std::string& playerId,
     return loadGameState(bestId, outState);
 }
 
-// ----------------- Grid helpers -----------------
 
 void buildGameStateFromGrid(GameState& state, const int gridArr[M][N])
 {

@@ -3,7 +3,6 @@
 
 ThemeInventory g_themeInventory;
 
-// ------ helper functions ------
 
 int ThemeInventory::nodeHeight(ThemeNode* n)
 {
@@ -24,10 +23,8 @@ ThemeNode* ThemeInventory::rotateRight(ThemeNode* y)
     x->right = y;
     y->left  = T2;
 
-    y->height = 1 + (nodeHeight(y->left) > nodeHeight(y->right)
-                     ? nodeHeight(y->left) : nodeHeight(y->right));
-    x->height = 1 + (nodeHeight(x->left) > nodeHeight(x->right)
-                     ? nodeHeight(x->left) : nodeHeight(x->right));
+    y->height = 1 + (nodeHeight(y->left) > nodeHeight(y->right) ? nodeHeight(y->left) : nodeHeight(y->right));
+    x->height = 1 + (nodeHeight(x->left) > nodeHeight(x->right) ? nodeHeight(x->left) : nodeHeight(x->right));
 
     return x;
 }

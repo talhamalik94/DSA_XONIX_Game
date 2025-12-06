@@ -5,26 +5,21 @@
 #include "Config.h"
 #include "Grid.h"
 
-// Linked list node required by assignment
-// Represents one non-water tile in the grid
 struct TileNode
 {
-    int row;   // 0..M-1
-    int col;   // 0..N-1
-    int value; // original grid value (1, 2, 3, ...)
+    int row;   
+    int col;   
+    int value; 
     TileNode *next;
 };
 
-// Unified GameState for both Single-player and Multiplayer
 struct GameState
 {
-    // Meta
-    std::string saveId;    // unique save identifier
-    std::string playerId;  // username (or "Guest")
-    std::string timestamp; // human readable
-    bool isMultiplayer;    // false = SP, true = MP
-    int level;             // 0 easy, 1 medium, 2 hard
-
+    std::string saveId;    
+    std::string playerId;  
+    std::string timestamp; 
+    bool isMultiplayer;    
+    int level;             
     // Single-player fields (also used for P1 in MP if needed)
     int playerX;
     int playerY;
@@ -37,7 +32,7 @@ struct GameState
     int targetLandTiles;
     int currentStrokeTiles;
 
-    // Multiplayer: second player and turn info (for safe-state resume)
+    // second player and turn info
     int p2X;
     int p2Y;
     int p2Dir;
@@ -52,14 +47,12 @@ struct GameState
     int p2PowerUpTop;
     int p2PowerUpStack[10];
 
-    // Enemies (used in both SP and MP as hazards)
     int enemyCount;
     int ex[10];
     int ey[10];
     float evx[10];
     float evy[10];
 
-    // Linked list of all non-water tiles
     TileNode *tilesHead;
 
     GameState();

@@ -78,7 +78,6 @@ static void floodFill(int gy, int gx)
     floodFill(gy, gx + 1);
 }
 
-
 int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameState *loadedState)
 {
     srand(static_cast<unsigned int>(time(nullptr)));
@@ -109,7 +108,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     Enemy enemies[10]; // use only enemyCount
 
-    
     for (int i = 0; i < M; i++)
         for (int j = 0; j < N; j++)
             grid[i][j] = (i == 0 || j == 0 || i == M - 1 || j == N - 1) ? 1 : 0;
@@ -123,8 +121,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
     bool exitGame = false;
 
     int finalScore = 0;
-
-    
 
     if (loadedState != nullptr && !loadedState->isMultiplayer)
     {
@@ -176,7 +172,14 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     Clock clock;
     float timer = 0;
-    
+
+    PowerUpStack powerUps;
+    int nextPowerUpAt = 50;
+
+    if (loadedState != nullptr && !loadedState->isMultiplayer)
+    {
+        powerUps.fromEncodedArray(loadedState->powerUpStack, loadedState->powerUpTop);
+    }
 
     auto saveCurrentGame = [&]()
     {
@@ -228,10 +231,8 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             state.evx[i] = enemies[i].dx;
             state.evy[i] = enemies[i].dy;
         }
-
-        state.powerUpTop = 0;
-        for (int i = 0; i < 10; ++i)
-            state.powerUpStack[i] = 0;
+        // Save current power up stack
+        powerUps.toEncodedArray(state.powerUpStack, state.powerUpTop, 10);
 
         buildGameStateFromGrid(state, grid);
 
@@ -249,21 +250,10 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         }
     };
 
-    
-    PowerUpStack powerUps;
-    int nextPowerUpAt = 50;
-
-    if (loadedState != nullptr && !loadedState->isMultiplayer)
-    {
-        powerUps.fromEncodedArray(loadedState->powerUpStack, loadedState->powerUpTop);
-    }
-
-    
     int tilesCapturedThisStroke = 0;
     int captureStreak = 0;
     int multiplier = 1;
 
-    
     Text scoreText;
     scoreText.setFont(theme.font);
     scoreText.setCharacterSize(24);
@@ -286,20 +276,19 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         clock.restart();
         timer += dt;
 
-        
         Event event;
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed)
             {
-                
+
                 window.close();
                 exitGame = true;
             }
 
             if (event.type == Event::KeyPressed)
             {
-                
+
                 if (event.key.code == Keyboard::Escape ||
                     event.key.code == Keyboard::Enter)
                 {
@@ -317,13 +306,11 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                     }
                 }
 
-                
                 if (event.key.code == Keyboard::S)
                 {
                     saveCurrentGame();
                 }
 
-                
                 if (event.key.code == Keyboard::P)
                 {
                     // Simple pause menu UI
@@ -373,7 +360,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                             }
                         }
 
-                        
                         window.clear();
                         drawGameBackground(window, theme);
 
@@ -455,7 +441,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             }
         }
 
-        
         if (enemiesFrozen)
         {
             freezeTimer -= dt;
@@ -465,7 +450,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             }
         }
 
-        
         starfield.update(dt);
 
         if (gameRunning && timer > delay && (dirX != 0 || dirY != 0))
@@ -499,7 +483,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
             for (int i = 0; i < enemyCount; i++)
                 enemies[i].move();
         }
-        
 
         if (gameRunning && grid[playerY][playerX] == 1)
         {
@@ -559,8 +542,7 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
                         grid[i][j] = 1;
         }
 
-        
-        //enemy touches trail
+        // enemy touches trail
         for (int i = 0; i < enemyCount; i++)
         {
             int gy = enemies[i].y / ts;
@@ -654,8 +636,7 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
         window.display();
     }
 
-    
-    //save match
+    // save match
     extern PlayerDatabase g_playerDb;
     extern int g_currentPlayer;
 
@@ -683,8 +664,6 @@ int runSinglePlayerGame(RenderWindow &window, const Theme &theme, const GameStat
 
     return finalScore;
 }
-
-
 
 int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState *loadedState)
 {
@@ -791,7 +770,7 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
     if (!showIntro("Multiplayer Mode"))
         return 0;
 
-    //create board
+    // create board
     for (int i = 0; i < M; ++i)
     {
         for (int j = 0; j < N; ++j)
@@ -808,8 +787,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
         for (int j = 0; j < N; ++j)
             trailOwner[i][j] = 0;
 
-            
-
     Enemy enemies[10];
     Starfield starfield(N * ts, M * ts);
     Texture tilesTex, enemyTex, gameOverTex;
@@ -824,7 +801,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
     Sprite gameOverSprite(gameOverTex);
     gameOverSprite.setPosition(100.f, 100.f);
 
-    
     struct PlayerState
     {
         int x, y;
@@ -850,12 +826,10 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
 
     int p1NextPU = 50, p2NextPU = 50;
 
-    
     bool freezeActive = false;
     int frozenBy = 0;
     float freezeTimer = 0.f;
 
-    
     float matchTime = 0.f;
 
     // HUD texts
@@ -885,7 +859,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
     float tick = 0.f;
     const float delay = 0.07f;
 
-    
     auto isConstructing = [&](const PlayerState &p) -> bool
     {
         int gy = p.y;
@@ -895,13 +868,11 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
         return (grid[gy][gx] == 0 || (grid[gy][gx] == 2));
     };
 
-    
     auto ff = [&](int sy, int sx)
     {
         floodFill(sy, sx);
     };
 
-    
     auto captureAreaFor = [&](int playerId, PlayerState &player)
     {
         int oldGrid[M][N];
@@ -988,7 +959,7 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
                     running = false;
                 }
 
-                //power ups
+                // power ups
                 if (event.key.code == Keyboard::Space && p1.alive)
                 {
                     if (!p1.powerUps.isEmpty())
@@ -1024,7 +995,7 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
         bool p1CanMove = (!freezeActive || frozenBy == 1);
         bool p2CanMove = (!freezeActive || frozenBy == 2);
 
-        //player 1 move with arrow keys
+        // player 1 move with arrow keys
         if (p1.alive && p1CanMove)
         {
             bool any = false;
@@ -1061,7 +1032,7 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
             }
         }
 
-        //player 2 with Q A X G
+        // player 2 with Q A X G
         if (p2.alive && p2CanMove)
         {
             bool any = false;
@@ -1071,19 +1042,19 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
                 p2.dirY = 0;
                 any = true;
             }
-            else if (Keyboard::isKeyPressed(Keyboard::G))
+            else if (Keyboard::isKeyPressed(Keyboard::D))
             {
                 p2.dirX = 1;
                 p2.dirY = 0;
                 any = true;
             }
-            else if (Keyboard::isKeyPressed(Keyboard::Q))
+            else if (Keyboard::isKeyPressed(Keyboard::W))
             {
                 p2.dirX = 0;
                 p2.dirY = -1;
                 any = true;
             }
-            else if (Keyboard::isKeyPressed(Keyboard::X))
+            else if (Keyboard::isKeyPressed(Keyboard::S))
             {
                 p2.dirX = 0;
                 p2.dirY = 1;
@@ -1098,7 +1069,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
             }
         }
 
-        
         if (tick > delay)
         {
             auto stepPlayer = [&](int id, PlayerState &p)
@@ -1163,7 +1133,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
                 enemies[i].move();
         }
 
-
         for (int i = 0; i < enemyCount; ++i)
         {
             int gy = enemies[i].y / ts;
@@ -1198,7 +1167,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
                 p1.alive = p2.alive = false;
             }
 
-            
             else if (p1Cons && !p2Cons && p1.x == p2.x && p1.y == p2.y)
             {
                 p1.alive = false;
@@ -1238,7 +1206,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
         if (!p1.alive && !p2.alive)
             running = false;
 
-            
         starfield.update(dt);
         drawGameBackground(window, theme);
 
@@ -1275,7 +1242,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
             }
         }
 
-        
         tile.setTextureRect(IntRect(36, 0, ts, ts));
 
         if (p1.alive)
@@ -1300,7 +1266,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
             window.draw(enemySprite);
         }
 
-        
         Rectangle hudRect;
         hudRect.setSize(Vec2(static_cast<float>(N * ts), 60.f));
         hudRect.setPosition(0.f, 0.f);
@@ -1359,7 +1324,6 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
         recordMatchForPlayer(p1Index, p2Name, r1, p1.score);
     }
 
-    
     if (g_secondPlayerIndex >= 0)
     {
         string r2;
@@ -1371,6 +1335,17 @@ int runMultiplayerGame(RenderWindow &window, const Theme &theme, const GameState
             r2 = "DRAW";
 
         recordMatchForPlayer(g_secondPlayerIndex, p1Name, r2, p2.score);
+    }
+
+    // Update leaderboard scores for both players
+    if (p1Index >= 0 && p1.score > 0)
+    {
+        g_playerDb.updateScore(p1Index, p1.score);
+    }
+
+    if (g_secondPlayerIndex >= 0 && p2.score > 0)
+    {
+        g_playerDb.updateScore(g_secondPlayerIndex, p2.score);
     }
 
     g_secondPlayerIndex = -1;

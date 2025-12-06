@@ -97,74 +97,75 @@ AppState showLandingMenu(RenderWindow &window, const Theme &theme)
 
         drawThemeBackground(window, theme);
 
-        // title "XONIX LOGIN"
+        // Main game title: "XONIX"
+        Text gameTitle;
+        gameTitle.setFont(theme.titleFont);
+        gameTitle.setString("XONIX");
+        gameTitle.setCharacterSize(72);
+        gameTitle.setFillColor(theme.accentColor);
+
+        FloatRect gb = gameTitle.getLocalBounds();
+        gameTitle.setOrigin(gb.left + gb.width / 2.f, gb.top + gb.height / 2.f);
+        gameTitle.setPosition(window.getSize().x / 2.f, 70.f);
+        window.draw(gameTitle);
+
+        // Small subtitle
         Text title;
-        title.setFont(theme.titleFont);
-        title.setString("XONIX LOGIN");
+        title.setFont(theme.font);
+        title.setString("XONIX");
         title.setCharacterSize(56);
         title.setFillColor(theme.accentColor);
 
-        FloatRect tb = title.getLocalBounds();
-        title.setOrigin(tb.left + tb.width / 2.f, tb.top + tb.height / 2.f);
-        title.setPosition(window.getSize().x / 2.f, 80.f);
+        FloatRect sb = title.getLocalBounds();
+        title.setOrigin(sb.left + sb.width / 2.f, sb.top + sb.height / 2.f);
+        title.setPosition(window.getSize().x / 2.f, 120.f);
         window.draw(title);
 
-        // base button colors (normal)
-        Color buttonColors[4] = {
-            Color(180, 40, 40), // Login   - red
-            Color(40, 90, 200), // Register - blue
-            Color(40, 140, 60), // Forgot Password - green
-            Color(70, 70, 70)   // Exit - dark gray
-        };
-
-        // loop to draw options as buttons
-        // loop to draw options as buttons
+        // Simple neutral buttons that glow on selection
         for (int i = 0; i < optionCount; i++)
         {
-            // text for this option
             Text opt;
             opt.setFont(theme.font);
             opt.setString(options[i]);
             opt.setCharacterSize(28);
 
-            // normal text color
-            Color txtColor = Color::White;
-
-            // position of text (centered)
             FloatRect ob = opt.getLocalBounds();
             float centerX = window.getSize().x / 2.f;
-            float centerY = 170.f + i * 60.f; // vertical spacing
+            float centerY = 190.f + i * 60.f; // vertical spacing
 
             opt.setOrigin(ob.left + ob.width / 2.f, ob.top + ob.height / 2.f);
             opt.setPosition(centerX, centerY);
 
-            // button rectangle size (a bit larger than text)
-            float paddingX = 40.f;
-            float paddingY = 10.f;
-            sf::Vector2f buttonSize(ob.width + paddingX, ob.height + paddingY);
+            float paddingX = 60.f;
+            float paddingY = 16.f;
+            Vec2 buttonSize(ob.width + paddingX, ob.height + paddingY);
 
-            sf::RectangleShape button;
+            Rectangle button;
             button.setSize(buttonSize);
             button.setOrigin(buttonSize.x / 2.f, buttonSize.y / 2.f);
             button.setPosition(centerX, centerY);
 
-            // base color for this button
-            Color btnColor = buttonColors[i];
+            // Base button look: dark semi-transparent
+            Color baseFill(15, 15, 15, 200);
+            Color baseOutline(0, 0, 0, 0);
+            Color textColor = theme.textColor;
 
-            // highlight selected
+            // Glow when selected
             if (i == selectedIndex)
             {
-                btnColor = Color(
-                    min(255, btnColor.r + 40),
-                    min(255, btnColor.g + 40),
-                    min(255, btnColor.b + 40));
-                button.setOutlineThickness(2.f);
-                button.setOutlineColor(theme.highlightColor);
-                txtColor = Color::Yellow;
+                baseFill = Color(60, 60, 60, 240);         // brighter
+                baseOutline = theme.highlightColor;        // glowing outline
+                textColor = theme.highlightColor;          // bright text
+                button.setOutlineThickness(3.f);
+            }
+            else
+            {
+                button.setOutlineThickness(1.f);
             }
 
-            button.setFillColor(btnColor);
-            opt.setFillColor(txtColor);
+            button.setFillColor(baseFill);
+            button.setOutlineColor(baseOutline);
+            opt.setFillColor(textColor);
 
             window.draw(button);
             window.draw(opt);
@@ -175,6 +176,7 @@ AppState showLandingMenu(RenderWindow &window, const Theme &theme)
 
     return AppState::EXIT_APP;
 }
+
 
 // Forward declaration for forgot screen (used by login)
 int runForgotPasswordScreen(RenderWindow &window, Theme &theme);
@@ -1633,13 +1635,18 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
     if (g_currentPlayer < 0)
         return AppState::PLAYER_MENU;
 
-    // Non-const because we load history into it
     Player &p = g_playerDb.getPlayerRef(g_currentPlayer);
     p.history.loadFromFile(p.username);
 
     int totalMatches = p.history.size();
     int scroll = 0;
     const int pageSize = 8; // rows visible at once
+
+    // Column X positions (more spacing between Time and Opponent)
+    const float colTimeX  = 60.f;
+    const float colOppX   = 330.f;  // was 260
+    const float colResX   = 500.f;  // was 440
+    const float colScoreX = 630.f;  // was 560
 
     while (window.isOpen())
     {
@@ -1699,19 +1706,19 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
             header.setFillColor(theme.highlightColor);
 
             header.setString("Time");
-            header.setPosition(60.f, baseY);
+            header.setPosition(colTimeX, baseY);
             window.draw(header);
 
             header.setString("Opponent");
-            header.setPosition(260.f, baseY);
+            header.setPosition(colOppX, baseY);
             window.draw(header);
 
             header.setString("Result");
-            header.setPosition(440.f, baseY);
+            header.setPosition(colResX, baseY);
             window.draw(header);
 
             header.setString("Score");
-            header.setPosition(560.f, baseY);
+            header.setPosition(colScoreX, baseY);
             window.draw(header);
 
             // Table rows
@@ -1746,10 +1753,10 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
                 tRes.setString(r.result);
                 tScore.setString(std::to_string(r.score));
 
-                tTime.setPosition(60.f, y);
-                tOpp.setPosition(260.f, y);
-                tRes.setPosition(440.f, y);
-                tScore.setPosition(560.f, y);
+                tTime.setPosition(colTimeX,  y);
+                tOpp.setPosition(colOppX,   y);
+                tRes.setPosition(colResX,   y);
+                tScore.setPosition(colScoreX, y);
 
                 window.draw(tTime);
                 window.draw(tOpp);
@@ -1763,6 +1770,7 @@ AppState showMatchHistoryScreen(RenderWindow &window, const Theme &theme)
 
     return AppState::EXIT_APP;
 }
+
 
 AppState showMultiplayerScreen(RenderWindow &window, const Theme &theme)
 {
